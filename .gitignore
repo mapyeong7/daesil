@@ -1,0 +1,30 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local runtime state
+server_state.json
+server.out.log
+server.err.log
+
+# Uploaded/extracted/generated school files
+uploads/
+extracted/
+phase1_output/
+phase2_output/
+phase3_output/
+
+# Private handoff/progress notes
+handoff.md
+
+# School/student data files
+*.hwp
+*.hwpx
+*.xls
+*.xlsx
+*.tsv
+*.csv
+
+# Local scratch/API captures
+excel_api_response.json

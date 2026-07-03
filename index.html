@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>배움성장알리미 결과 확인</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #d7dce2;
+      --text: #20242a;
+      --muted: #69717d;
+      --accent: #1f6feb;
+      --bad: #b42318;
+      --ok: #16794c;
+      --warn: #946200;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Malgun Gothic", "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    button,
+    a.button {
+      border: 1px solid #b8c2cf;
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 11px;
+      text-decoration: none;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-width: 0;
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 14px;
+      min-width: 0;
+    }
+
+    .span-4 {
+      grid-column: span 4;
+    }
+
+    .span-6 {
+      grid-column: span 6;
+    }
+
+    .span-8 {
+      grid-column: span 8;
+    }
+
+    .span-12 {
+      grid-column: span 12;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .status-ok {
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    .status-bad {
+      color: var(--bad);
+      font-weight: 700;
+    }
+
+    .status-warn {
+      color: var(--warn);
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      background: #eef2f6;
+      font-weight: 700;
+    }
+
+    .scroll {
+      overflow: auto;
+      max-height: 420px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+
+    .level {
+      display: inline-block;
+      min-width: 64px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: #eef2f6;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .level.reached {
+      background: #e8f3ff;
+      color: #0b5cab;
+    }
+
+    .level.partial {
+      background: #fff4df;
+      color: #8a5200;
+    }
+
+    .level.effort {
+      background: #fff0f0;
+      color: #a11b1b;
+    }
+
+    .error {
+      white-space: pre-wrap;
+      color: var(--bad);
+    }
+
+    .issue-lines {
+      white-space: pre-wrap;
+    }
+
+    .generated-files {
+      margin-top: 10px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .generated-files a {
+      display: inline-flex;
+      width: fit-content;
+      max-width: 100%;
+      color: var(--accent);
+      overflow-wrap: anywhere;
+    }
+
+    .generated-files a.zip-link {
+      font-weight: 700;
+    }
+
+    .student-layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .student-list .scroll {
+      max-height: 560px;
+    }
+
+    .student-list tr {
+      cursor: pointer;
+    }
+
+    .student-list tr.selected td {
+      background: #e9f1ff;
+      font-weight: 700;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .filter-row button {
+      padding: 6px 10px;
+    }
+
+    .filter-row button.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .detail-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .detail-title strong {
+      font-size: 16px;
+    }
+
+    .summary-count {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .form-row input[type="file"] {
+      max-width: 100%;
+    }
+
+    .file-upload {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .file-upload input[type="file"] {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .file-select-button {
+      border: 1px solid #b8c2cf;
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font: inherit;
+      line-height: 1.5;
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+    }
+
+    .file-name {
+      min-width: 180px;
+      max-width: 420px;
+      overflow-wrap: anywhere;
+    }
+
+    .action-status {
+      margin-top: 8px;
+      min-height: 20px;
+    }
+
+    .callout {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfcfd;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .subject-upload-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .subject-upload-card {
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+      min-width: 0;
+    }
+
+    .subject-upload-card.ok {
+      border-left-color: var(--ok);
+      background: #f7fbf8;
+    }
+
+    .subject-upload-card.warn {
+      border-left-color: var(--warn);
+      background: #fffaf0;
+    }
+
+    .subject-upload-card.error {
+      border-left-color: var(--bad);
+      background: #fff8f7;
+    }
+
+    .subject-upload-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .subject-upload-title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .subject-upload-status {
+      margin-top: 8px;
+      min-height: 20px;
+    }
+
+    .subject-upload-detail {
+      margin-top: 8px;
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .subject-upload-detail div {
+      overflow-wrap: anywhere;
+    }
+
+    .notice-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgb(32 36 42 / 48%);
+    }
+
+    .notice-overlay[hidden] {
+      display: none;
+    }
+
+    .notice-dialog {
+      width: min(720px, calc(100vw - 32px));
+      max-height: min(78vh, 680px);
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 24px 60px rgb(0 0 0 / 24%);
+    }
+
+    .notice-head,
+    .notice-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .notice-actions {
+      justify-content: flex-end;
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+    }
+
+    .notice-head h2 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .notice-close {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .notice-body {
+      padding: 14px;
+      overflow: auto;
+    }
+
+    .notice-summary {
+      margin-bottom: 12px;
+    }
+
+    .notice-lines {
+      display: grid;
+      gap: 8px;
+    }
+
+    .notice-line {
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: #fbfcfd;
+    }
+
+    .notice-line.error {
+      border-left-color: var(--bad);
+    }
+
+    .notice-line.warning {
+      border-left-color: var(--warn);
+    }
+
+    @media (max-width: 900px) {
+      .span-4,
+      .span-6,
+      .span-8 {
+        grid-column: span 12;
+      }
+
+      .metric-row {
+        grid-template-columns: 1fr;
+      }
+
+      .student-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>배움성장알리미 결과 확인</h1>
+    <div class="muted">HWP 양식을 먼저 인식하고, 과목별 NEIS 엑셀 파일을 누적해 결과를 확인합니다.</div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div id="load-status" class="muted">결과 파일을 불러오는 중입니다.</div>
+      <div>
+        <button class="primary" id="reload-button" type="button">새로고침</button>
+        <a class="button" id="phase1-link" href="#">Phase 1 JSON</a>
+        <a class="button" id="phase2-link" href="#">Phase 2 JSON</a>
+        <a class="button" id="phase3-link" href="#">Phase 3 JSON</a>
+      </div>
+    </div>
+
+    <section class="grid">
+      <article class="panel span-4">
+        <h2>요약</h2>
+        <div class="panel-body">
+          <div class="metric-row">
+            <div class="metric">
+              <span class="muted">평가 항목</span>
+              <strong id="metric-blocks">-</strong>
+            </div>
+            <div class="metric">
+              <span class="muted">학생</span>
+              <strong id="metric-students">-</strong>
+            </div>
+            <div class="metric">
+              <span class="muted">확인 필요</span>
+              <strong id="metric-issues">-</strong>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel span-8">
+        <h2>Phase 2 상태</h2>
+        <div class="panel-body" id="phase2-status">-</div>
+      </article>
+
+      <article class="panel span-6">
+        <h2>1. HWP 양식 인식</h2>
+        <div class="panel-body">
+          <div class="form-row">
+            <input id="template-file" type="file" accept=".hwp,.hwpx">
+            <button class="primary" id="recognize-button" type="button">양식 인식</button>
+          </div>
+          <div class="muted action-status" id="template-status">HWP 양식 파일을 선택한 뒤 인식 버튼을 누르세요.</div>
+        </div>
+      </article>
+
+      <article class="panel span-12">
+        <h2>2. 과목별 성적표 입력</h2>
+        <div class="panel-body">
+          <div class="callout muted">
+            HWP 양식에서 추출된 교과별로 엑셀 선택 칸이 자동으로 생깁니다.
+            각 교과 칸에 NEIS에서 내려받은 해당 교과 엑셀 파일을 넣으면 HWP 평가 목록에 맞는 항목만 누적합니다.
+          </div>
+          <div class="form-row">
+            <button id="reset-scores-button" type="button">성적 입력 초기화</button>
+          </div>
+          <div id="subject-excel-list" class="subject-upload-grid"></div>
+          <div class="muted action-status" id="excel-status">양식 인식 후 과목별 NEIS 엑셀 파일을 불러오세요.</div>
+        </div>
+      </article>
+
+      <article class="panel span-12">
+        <h2>3. 출력 준비</h2>
+        <div class="panel-body">
+          <div class="form-row">
+            <button class="primary" id="prepare-output-button" type="button">학생별 출력 데이터 만들기</button>
+            <button id="generate-sample-output-button" type="button">1명 테스트 생성</button>
+            <button id="generate-output-button" type="button">HWP 파일 생성</button>
+          </div>
+          <div class="muted action-status" id="output-status">성적 입력을 마치면 학생별 HWP 출력 준비 데이터를 만들 수 있습니다.</div>
+        </div>
+      </article>
+
+      <article class="panel span-12">
+        <h2>HWP 양식 평가 목록</h2>
+        <div class="panel-body">
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 60px;">순서</th>
+                  <th style="width: 110px;">교과</th>
+                  <th style="width: 150px;">영역</th>
+                  <th>평가 요소</th>
+                </tr>
+              </thead>
+              <tbody id="block-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel span-12">
+        <h2>학생별 입력 결과</h2>
+        <div class="panel-body">
+          <div class="student-layout">
+            <section class="student-list">
+              <div class="scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 64px;">번호</th>
+                      <th>이름</th>
+                      <th style="width: 92px;">입력</th>
+                      <th style="width: 78px;">확인</th>
+                    </tr>
+                  </thead>
+                  <tbody id="student-list-rows"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="student-detail">
+              <div class="detail-title">
+                <strong id="selected-student-title">학생을 선택하세요.</strong>
+                <span class="muted summary-count" id="selected-student-summary">-</span>
+              </div>
+              <div class="filter-row" id="subject-filter"></div>
+              <div class="scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 96px;">교과</th>
+                      <th style="width: 130px;">영역</th>
+                      <th>평가 요소</th>
+                      <th style="width: 96px;">결과</th>
+                      <th style="width: 96px;">원본</th>
+                    </tr>
+                  </thead>
+                  <tbody id="student-detail-rows"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel span-12">
+        <h2>확인 필요 항목</h2>
+        <div class="panel-body" id="issue-list">-</div>
+      </article>
+    </section>
+
+    <div id="notice-overlay" class="notice-overlay" role="dialog" aria-modal="true" aria-labelledby="notice-title" hidden>
+      <div class="notice-dialog">
+        <div class="notice-head">
+          <h2 id="notice-title">확인 필요</h2>
+          <button id="notice-close" class="notice-close" type="button" aria-label="닫기">×</button>
+        </div>
+        <div id="notice-body" class="notice-body"></div>
+        <div class="notice-actions">
+          <button class="primary" id="notice-ok" type="button">확인</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let phase1Data = null;
+    let phase2Data = null;
+    let phase3Data = null;
+    let resultPaths = {};
+    let selectedStudentIndex = 0;
+    let selectedSubject = "전체";
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function closeNoticePopup() {
+      $("notice-overlay").hidden = true;
+    }
+
+    function showNoticePopup(title, bodyHtml) {
+      $("notice-title").textContent = title;
+      $("notice-body").innerHTML = bodyHtml;
+      $("notice-overlay").hidden = false;
+      $("notice-ok").focus();
+    }
+
+    function issueCounts(phase2) {
+      const issues = phase2?.issues || [];
+      const errorCount = phase2?.error_count ?? issues.filter((issue) => issue.severity !== "warning").length;
+      const warningCount = phase2?.warning_count ?? issues.filter((issue) => issue.severity === "warning").length;
+      return { errorCount, warningCount };
+    }
+
+    function issueLineHtml(issue) {
+      const isWarning = issue.severity === "warning";
+      const label = isWarning ? "경고" : "오류";
+      const cls = isWarning ? "warning" : "error";
+      const row = issue.source_row ? `${issue.source_row}행` : "전체";
+      const value = issue.value ? ` / 값: ${issue.value}` : "";
+      return `
+        <div class="notice-line ${cls}">
+          <strong class="${isWarning ? "status-warn" : "status-bad"}">[${label}]</strong>
+          ${escapeHtml(row)} · ${escapeHtml(issue.column || "-")}<br>
+          ${escapeHtml((issue.message || "-") + value)}
+        </div>
+      `;
+    }
+
+    function showPhase2IssuePopup(phase2, contextLabel) {
+      const issues = phase2?.issues || [];
+      if (!issues.length) return;
+
+      const { errorCount, warningCount } = issueCounts(phase2);
+      const title = errorCount ? "오류 확인 필요" : "경고 확인 필요";
+      const visibleIssues = issues.slice(0, 20);
+      const hiddenCount = issues.length - visibleIssues.length;
+      const summary = `
+        <div class="notice-summary">
+          <div><strong>${escapeHtml(contextLabel)}</strong> 후 확인할 항목이 있습니다.</div>
+          <div class="muted">오류 ${errorCount}건, 경고 ${warningCount}건입니다. 전체 목록은 화면의 “확인 필요 항목”에도 남겨둡니다.</div>
+        </div>
+      `;
+      const more = hiddenCount > 0
+        ? `<div class="muted">외 ${hiddenCount}건이 더 있습니다. 아래 “확인 필요 항목”에서 전체를 확인하세요.</div>`
+        : "";
+      showNoticePopup(title, `${summary}<div class="notice-lines">${visibleIssues.map(issueLineHtml).join("")}</div>${more}`);
+    }
+
+    function showErrorPopup(title, message) {
+      showNoticePopup(title, `
+        <div class="notice-summary">
+          <strong class="status-bad">${escapeHtml(message)}</strong>
+        </div>
+      `);
+    }
+
+    function showPhase3IssuePopup(phase3) {
+      const issues = phase3?.blocking_issues || [];
+      if (!issues.length) return;
+      showNoticePopup("출력 전 확인 필요", `
+        <div class="notice-summary">
+          <div><strong>학생별 HWP 생성 전 확인이 필요합니다.</strong></div>
+          <div class="muted">아래 항목을 해결한 뒤 다시 출력 준비를 누르세요.</div>
+        </div>
+        <div class="notice-lines">
+          ${issues.map((issue) => `
+            <div class="notice-line error">
+              <strong class="status-bad">[오류]</strong>
+              ${escapeHtml(issue.message || "-")}
+              ${issue.value ? `<br><span class="muted">${escapeHtml(issue.value)}</span>` : ""}
+            </div>
+          `).join("")}
+        </div>
+      `);
+    }
+
+    async function loadJson(path, options = {}) {
+      const response = await fetch(encodeURI(path), { cache: "no-store", ...options });
+      if (!response.ok) {
+        throw new Error(`${path} 파일을 불러오지 못했습니다. HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+
+    function assessmentLabel(block) {
+      return `${block.index}. ${block.subject} / ${block.area}`;
+    }
+
+    function baseName(path) {
+      return String(path || "").split(/[\\/]/).filter(Boolean).pop() || "";
+    }
+
+    function shortList(items, maxItems = 3) {
+      const values = items.filter(Boolean);
+      const visible = values.slice(0, maxItems);
+      const hidden = values.length - visible.length;
+      return hidden > 0 ? `${visible.join(", ")}, 외 ${hidden}개` : visible.join(", ");
+    }
+
+    function columnIndex(column) {
+      const rawIndex = column?.block_index ?? column?.index;
+      const index = Number(rawIndex);
+      return Number.isFinite(index) ? index : 0;
+    }
+
+    function subjectKey(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/[ㆍᆞ·]/g, "")
+        .replace(/[\s/_\-.,:;()[\]{}"'`~!@#$%^&*+=?\\|<>]+/g, "");
+    }
+
+    function subjectValueMatches(subject, value, allowContaining = false) {
+      const expected = subjectKey(subject);
+      const actual = subjectKey(value);
+      if (!expected || !actual) return false;
+      return actual === expected || (allowContaining && actual.includes(expected));
+    }
+
+    function subjectUploadId(subject) {
+      let hash = 0;
+      const text = String(subject || "subject");
+      for (let i = 0; i < text.length; i += 1) {
+        hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+      }
+      return `subject-excel-${Math.abs(hash)}`;
+    }
+
+    function subjectsFromPhase1(phase1) {
+      const subjects = [];
+      const seen = new Set();
+      for (const block of phase1?.blocks || []) {
+        const subject = block.subject || "미분류";
+        const key = subjectKey(subject) || subject;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        subjects.push(subject);
+      }
+      return subjects;
+    }
+
+    function phase1BlocksForSubject(subject) {
+      const key = subjectKey(subject);
+      return (phase1Data?.blocks || []).filter((block) => subjectKey(block.subject || "미분류") === key);
+    }
+
+    function importedInfoForSubject(subject, phase2 = phase2Data) {
+      const imports = phase2?.metadata?.imports || [];
+      return imports.find((item) => (
+        subjectValueMatches(subject, item.subject)
+        || subjectValueMatches(subject, item.expected_subject)
+        || subjectValueMatches(subject, item.title, true)
+      ));
+    }
+
+    function issueMatchesSubject(issue, subject) {
+      const text = `${issue?.column || ""} ${issue?.message || ""} ${issue?.value || ""}`;
+      const key = subjectKey(subject);
+      return text.includes(`${subject} /`)
+        || text.includes(`${subject} 엑셀`)
+        || text.includes(`${subject} 교과`)
+        || (key && subjectKey(text).includes(key));
+    }
+
+    function issueSummaryText(issue) {
+      const label = issue.severity === "warning" ? "경고" : "오류";
+      const column = issue.column ? `${issue.column}: ` : "";
+      const value = issue.value ? ` / 값: ${issue.value}` : "";
+      return `[${label}] ${column}${issue.message || "-"}${value}`;
+    }
+
+    function subjectCardState(subject, phase1, phase2) {
+      const key = subjectKey(subject);
+      const blocks = (phase1?.blocks || []).filter((block) => subjectKey(block.subject || "미분류") === key);
+      const expectedIndexes = new Set(blocks.map((block) => Number(block.index)).filter(Boolean));
+      const importedColumns = (phase2?.columns || []).filter((column) => {
+        const index = columnIndex(column);
+        return subjectValueMatches(subject, column.subject) || expectedIndexes.has(index);
+      });
+      const importedIndexes = new Set(importedColumns.map(columnIndex).filter(Boolean));
+      const missingBlocks = blocks.filter((block) => !importedIndexes.has(Number(block.index)));
+      const issues = (phase2?.issues || []).filter((issue) => issueMatchesSubject(issue, subject));
+      const errorCount = issues.filter((issue) => issue.severity !== "warning").length;
+      const warningCount = issues.length - errorCount;
+      const importInfo = importedInfoForSubject(subject, phase2);
+      const importedCount = importedIndexes.size;
+      const expectedCount = blocks.length;
+
+      let cardClass = "";
+      let statusClass = "muted";
+      let statusText = `미입력 ${expectedCount}개 항목`;
+      if (phase2 && importedCount === 0) {
+        cardClass = "warn";
+        statusClass = "status-warn";
+        statusText = `미입력 ${expectedCount}개 항목`;
+      }
+      if (importedCount > 0) {
+        cardClass = "ok";
+        statusClass = "status-ok";
+        statusText = `반영됨 ${importedCount}/${expectedCount}`;
+      }
+      if (missingBlocks.length && importedCount > 0) {
+        cardClass = "warn";
+        statusClass = "status-warn";
+        statusText = `일부 누락 ${importedCount}/${expectedCount}`;
+      }
+      if (warningCount && !errorCount) {
+        cardClass = "warn";
+        statusClass = "status-warn";
+        statusText = `경고 ${warningCount}건 · ${importedCount}/${expectedCount}`;
+      }
+      if (errorCount) {
+        cardClass = "error";
+        statusClass = "status-bad";
+        statusText = `오류 ${errorCount}건 · ${importedCount}/${expectedCount}`;
+      }
+
+      const details = [];
+      const fileName = baseName(importInfo?.source_excel);
+      if (fileName) details.push(`파일: ${fileName}`);
+      if (missingBlocks.length) {
+        details.push(`누락: ${shortList(missingBlocks.map(assessmentLabel), 3)}`);
+      }
+      if (issues.length) {
+        details.push(shortList(issues.map(issueSummaryText), 2));
+      }
+
+      return {
+        blockCount: expectedCount,
+        importedCount,
+        cardClass,
+        statusClass,
+        statusText,
+        details,
+      };
+    }
+
+    function renderSubjectExcelInputs(phase1, phase2) {
+      const container = $("subject-excel-list");
+      if (!phase1) {
+        container.innerHTML = `<div class="muted">먼저 HWP 양식을 인식하면 교과별 엑셀 선택 칸이 자동으로 만들어집니다.</div>`;
+        return;
+      }
+
+      const subjects = subjectsFromPhase1(phase1);
+      if (!subjects.length) {
+        container.innerHTML = `<div class="status-bad">HWP 양식에서 교과를 찾지 못했습니다.</div>`;
+        return;
+      }
+
+      container.innerHTML = subjects.map((subject) => {
+        const inputId = subjectUploadId(subject);
+        const state = subjectCardState(subject, phase1, phase2);
+        const details = state.details.length
+          ? `<div class="subject-upload-detail">${state.details.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}</div>`
+          : "";
+        return `
+          <section class="subject-upload-card ${state.cardClass}" data-subject="${escapeHtml(subject)}">
+            <div class="subject-upload-head">
+              <div class="subject-upload-title">${escapeHtml(subject)}</div>
+              <div class="muted">${state.blockCount}개 평가</div>
+            </div>
+            <div class="file-upload">
+              <label class="file-select-button" for="${inputId}">${escapeHtml(subject)} 엑셀 선택</label>
+              <input id="${inputId}" type="file" accept=".xls,.xlsx" data-subject="${escapeHtml(subject)}">
+              <span class="muted file-name" data-role="file-name">선택된 파일 없음</span>
+              <button class="primary" type="button" data-action="import-subject" data-subject="${escapeHtml(subject)}">${escapeHtml(subject)} 반영</button>
+            </div>
+            <div class="subject-upload-status" data-role="subject-status"><span class="${state.statusClass}">${escapeHtml(state.statusText)}</span></div>
+            ${details}
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderBlocks(phase1) {
+      if (!phase1) {
+        $("block-rows").innerHTML = `<tr><td colspan="4">아직 인식한 HWP 양식이 없습니다.</td></tr>`;
+        return;
+      }
+      const rows = (phase1.blocks || []).map((block) => {
+        return `
+          <tr>
+            <td>${escapeHtml(block.index)}</td>
+            <td>${escapeHtml(block.subject)}</td>
+            <td>${escapeHtml(block.area)}</td>
+            <td>${escapeHtml(block.evaluation_element)}</td>
+          </tr>
+        `;
+      }).join("");
+      $("block-rows").innerHTML = rows;
+    }
+
+    function isStudentIssue(issue) {
+      const globalColumns = new Set(["헤더", "평가열", "추가열"]);
+      return !globalColumns.has(issue.column);
+    }
+
+    function issueCountForStudent(student) {
+      const issues = phase2Data?.issues || [];
+      return issues.filter((issue) => isStudentIssue(issue) && Number(issue.source_row) === Number(student.source_row)).length;
+    }
+
+    function levelClass(level) {
+      if (level === "도달") return "reached";
+      if (level === "부분도달") return "partial";
+      if (level === "노력중") return "effort";
+      return "";
+    }
+
+    function assessmentLevelHtml(assessment) {
+      if (!assessment.level) return `<span class="muted">미입력</span>`;
+      return `<span class="level ${levelClass(assessment.level)}">${escapeHtml(assessment.level)}</span>`;
+    }
+
+    function renderSubjectFilter(phase2) {
+      const subjects = [];
+      const seen = new Set();
+      for (const column of phase2.columns || []) {
+        const subject = column.subject;
+        const key = subjectKey(subject);
+        if (!subject || seen.has(key)) continue;
+        seen.add(key);
+        subjects.push(subject);
+      }
+      const buttons = ["전체", ...subjects].map((subject) => `
+        <button type="button" class="${subject === selectedSubject ? "active" : ""}" data-subject="${escapeHtml(subject)}">
+          ${escapeHtml(subject)}
+        </button>
+      `).join("");
+      $("subject-filter").innerHTML = buttons;
+    }
+
+    function renderStudentList(phase2) {
+      if (!phase2) {
+        $("student-list-rows").innerHTML = `<tr><td colspan="4">성적표 입력 전입니다.</td></tr>`;
+        return;
+      }
+      const rows = (phase2.students || []).map((student, index) => {
+        const validCount = (student.assessments || []).filter((assessment) => assessment.level).length;
+        const totalCount = (student.assessments || []).length;
+        const issueCount = issueCountForStudent(student);
+        const selected = index === selectedStudentIndex ? "selected" : "";
+        const issueText = issueCount ? `${issueCount}건` : "없음";
+        return `
+          <tr class="${selected}" data-student-index="${index}">
+            <td>${escapeHtml(student.number)}</td>
+            <td>${escapeHtml(student.name)}</td>
+            <td>${validCount}/${totalCount}</td>
+            <td class="${issueCount ? "status-bad" : "status-ok"}">${escapeHtml(issueText)}</td>
+          </tr>
+        `;
+      }).join("");
+      $("student-list-rows").innerHTML = rows || `<tr><td colspan="4">학생 데이터가 없습니다.</td></tr>`;
+    }
+
+    function renderSelectedStudent() {
+      const students = phase2Data?.students || [];
+      if (!students.length) {
+        $("selected-student-title").textContent = "학생 데이터가 없습니다.";
+        $("selected-student-summary").textContent = "-";
+        $("student-detail-rows").innerHTML = `<tr><td colspan="5">표시할 평가 결과가 없습니다.</td></tr>`;
+        return;
+      }
+
+      if (selectedStudentIndex >= students.length) selectedStudentIndex = 0;
+      const student = students[selectedStudentIndex];
+      const assessments = (student.assessments || []).filter((assessment) => {
+        return selectedSubject === "전체" || subjectValueMatches(selectedSubject, assessment.subject);
+      });
+      const totalCount = student.assessments?.length || 0;
+      const validCount = (student.assessments || []).filter((assessment) => assessment.level).length;
+      const issueCount = issueCountForStudent(student);
+
+      $("selected-student-title").textContent = `${student.number}번 ${student.name}`;
+      $("selected-student-summary").textContent = `입력 ${validCount}/${totalCount}, 확인 ${issueCount}건`;
+
+      const rows = assessments.map((assessment) => `
+        <tr>
+          <td>${escapeHtml(assessment.subject)}</td>
+          <td>${escapeHtml(assessment.area)}</td>
+          <td>${escapeHtml(assessment.evaluation_element)}</td>
+          <td>${assessmentLevelHtml(assessment)}</td>
+          <td>${escapeHtml(assessment.raw_value || "-")}</td>
+        </tr>
+      `).join("");
+      $("student-detail-rows").innerHTML = rows || `<tr><td colspan="5">해당 과목 평가 결과가 없습니다.</td></tr>`;
+    }
+
+    function renderStudents(phase2) {
+      if (!phase2) {
+        $("subject-filter").innerHTML = "";
+        renderStudentList(null);
+        renderSelectedStudent();
+        return;
+      }
+      renderSubjectFilter(phase2);
+      renderStudentList(phase2);
+      renderSelectedStudent();
+    }
+
+    function renderIssues(phase2) {
+      if (!phase2) {
+        $("issue-list").innerHTML = `<span class="muted">성적표 입력 전입니다.</span>`;
+        return;
+      }
+      const issues = phase2.issues || [];
+      if (!issues.length) {
+        $("issue-list").innerHTML = `<span class="status-ok">확인 필요 항목이 없습니다.</span>`;
+        return;
+      }
+      $("issue-list").innerHTML = `
+        <div class="issue-lines">
+          ${issues.map((issue) => {
+            const label = issue.severity === "warning" ? "경고" : "오류";
+            const cls = issue.severity === "warning" ? "status-warn" : "status-bad";
+            const value = issue.value ? " / 값: " + issue.value : "";
+            return `<span class="${cls}">[${label}]</span> ${issue.source_row}행 ${escapeHtml(issue.column)}: ${escapeHtml(issue.message + value)}`;
+          }).join("\n")}
+        </div>
+      `;
+    }
+
+    function renderPhase2Status(phase2) {
+      if (!phase2) {
+        $("phase2-status").innerHTML = phase1Data
+          ? `<span class="status-warn">성적표 입력 전입니다.</span>`
+          : `<span class="muted">먼저 HWP 양식을 인식하세요.</span>`;
+        return;
+      }
+      const errorCount = phase2.error_count ?? (phase2.issues || []).filter((issue) => issue.severity !== "warning").length;
+      const warningCount = phase2.warning_count ?? (phase2.issues || []).filter((issue) => issue.severity === "warning").length;
+      let statusClass = "status-ok";
+      let statusText = "검증 통과";
+      if (errorCount > 0) {
+        statusClass = "status-bad";
+        statusText = "오류 있음";
+      } else if (warningCount > 0) {
+        statusClass = "status-warn";
+        statusText = "경고 있음";
+      }
+
+      $("phase2-status").innerHTML = `
+        <div><span class="${statusClass}">${statusText}</span></div>
+        <div>헤더 검증: ${escapeHtml(phase2.header_message || "-")}</div>
+        <div class="muted">오류 ${errorCount}건, 경고 ${warningCount}건</div>
+      `;
+      if (phase2.source_format === "subject_excel_aggregate") {
+        const expected = phase2.metadata?.expected_column_count ?? phase1Data?.block_count ?? "-";
+        const imported = phase2.metadata?.imported_column_count ?? (phase2.columns || []).length;
+        const imports = phase2.metadata?.imports || [];
+        const importText = imports.map((item) => {
+          const subject = item.subject || item.title || "과목";
+          const count = (item.column_labels || []).filter(Boolean).length;
+          return `${subject} ${count}개`;
+        }).join(", ");
+        $("phase2-status").innerHTML += `
+          <div class="muted">누적 입력: ${imported}/${expected}</div>
+          <div class="muted">불러온 파일: ${escapeHtml(importText || "-")}</div>
+        `;
+        if (phase2.metadata?.migrated_from_phase1_json) {
+          $("phase2-status").innerHTML += `
+            <div class="status-ok">같은 평가 항목의 HWP를 다시 인식하여 기존 성적 입력을 보존했습니다.</div>
+          `;
+        }
+      }
+    }
+
+    function generatedFilesHtml(phase3) {
+      const links = phase3?.generated_file_links || [];
+      const isSample = phase3?.generated_mode === "sample";
+      const zipLink = phase3?.generated_zip_url
+        ? `<a class="zip-link" href="${escapeHtml(phase3.generated_zip_url)}" download>${isSample ? "테스트 HWP ZIP 내려받기" : "전체 HWP ZIP 내려받기"}${phase3.generated_zip_name ? ` (${escapeHtml(phase3.generated_zip_name)})` : ""}</a>`
+        : "";
+      if (!links.length && !zipLink) return "";
+      const folderLink = phase3.generated_output_dir_url
+        ? `<a href="${escapeHtml(phase3.generated_output_dir_url)}" target="_blank" rel="noopener">출력 폴더 열기</a>`
+        : "";
+      const fileLinks = links.map((item) => {
+        const name = item.name || item.path || "HWP 파일";
+        if (!item.url) return `<div>${escapeHtml(name)}</div>`;
+        return `<a href="${escapeHtml(item.url)}" download>${escapeHtml(name)}</a>`;
+      }).join("");
+      return `
+        <div class="generated-files">
+          ${zipLink}
+          ${folderLink}
+          ${fileLinks}
+        </div>
+      `;
+    }
+
+    function generationMethodHtml(phase3) {
+      const method = phase3?.generation_method;
+      if (!method) return "";
+      if (method === "direct_hwp_patch") {
+        return `<div class="muted">생성 방식: 빠른 직접 HWP 생성</div>`;
+      }
+      if (method === "hwp_com_fallback") {
+        const reason = phase3.generation_fallback_reason
+          ? ` (${String(phase3.generation_fallback_reason).slice(0, 90)})`
+          : "";
+        return `<div class="status-warn">생성 방식: 한글 프로그램 fallback${escapeHtml(reason)}</div>`;
+      }
+      return `<div class="muted">생성 방식: ${escapeHtml(method)}</div>`;
+    }
+
+    function renderPhase3Status(phase3) {
+      if (!phase3) {
+        $("output-status").innerHTML = phase2Data
+          ? `<span class="muted">학생별 출력 데이터가 아직 생성되지 않았습니다.</span>`
+          : `<span class="muted">성적 입력을 마치면 학생별 출력 준비 데이터를 만들 수 있습니다.</span>`;
+        return;
+      }
+      if (phase3.ready) {
+        const generated = phase3.generated_files || [];
+        const isSample = phase3.generated_mode === "sample";
+        $("output-status").innerHTML = `
+          <span class="status-ok">출력 준비 완료</span>
+          <span class="muted">학생 ${phase3.student_count ?? 0}명, 평가 항목 ${phase3.block_count ?? 0}개</span>
+          ${generated.length ? `<div class="status-ok">${isSample ? "테스트 HWP 파일" : "생성된 HWP 파일"} ${generated.length}개</div>` : ""}
+          ${generationMethodHtml(phase3)}
+          ${generatedFilesHtml(phase3)}
+        `;
+        return;
+      }
+      const issues = phase3.blocking_issues || [];
+      $("output-status").innerHTML = `
+        <span class="status-bad">출력 전 확인 필요 ${issues.length}건</span>
+        <div class="issue-lines">${issues.map((issue) => `- ${escapeHtml(issue.message || "-")}`).join("\n")}</div>
+      `;
+    }
+
+    function renderAll(payload) {
+      phase1Data = payload.phase1 || null;
+      phase2Data = payload.phase2 || null;
+      phase3Data = payload.phase3 || null;
+      resultPaths = payload.paths || {};
+      selectedStudentIndex = 0;
+      selectedSubject = "전체";
+
+      $("phase1-link").href = resultPaths.phase1_json || "#";
+      $("phase2-link").href = resultPaths.phase2_json || "#";
+      $("phase3-link").href = resultPaths.phase3_json || "#";
+      $("metric-blocks").textContent = phase1Data?.block_count ?? "-";
+      $("metric-students").textContent = phase2Data?.student_count ?? "-";
+      $("metric-issues").textContent = phase2Data ? (phase2Data.issues || []).length : "-";
+      $("reset-scores-button").disabled = !phase1Data || !phase2Data;
+      $("prepare-output-button").disabled = !phase2Data;
+      $("generate-sample-output-button").disabled = !phase3Data?.ready;
+      $("generate-output-button").disabled = !phase3Data?.ready;
+
+      renderPhase2Status(phase2Data);
+      renderBlocks(phase1Data);
+      renderSubjectExcelInputs(phase1Data, phase2Data);
+      renderStudents(phase2Data);
+      renderIssues(phase2Data);
+      renderPhase3Status(phase3Data);
+    }
+
+    async function loadAll() {
+      $("load-status").textContent = "결과 파일을 불러오는 중입니다.";
+      try {
+        const payload = await loadJson("/api/results");
+        renderAll(payload);
+        $("load-status").textContent = "불러오기 완료";
+      } catch (error) {
+        $("load-status").textContent = "불러오기 실패";
+        $("phase2-status").innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
+        showErrorPopup("결과 불러오기 실패", error.message);
+      }
+    }
+
+    async function recognizeTemplate() {
+      const file = $("template-file").files[0];
+      if (!file) {
+        $("template-status").innerHTML = `<span class="status-bad">HWP 양식 파일을 먼저 선택하세요.</span>`;
+        showErrorPopup("파일 선택 필요", "HWP 양식 파일을 먼저 선택하세요.");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("template", file);
+      $("recognize-button").disabled = true;
+      $("template-status").textContent = "양식을 인식하는 중입니다. 한글 프로그램이 잠시 실행될 수 있습니다.";
+      try {
+        const response = await fetch("/api/recognize-template", { method: "POST", body: formData });
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "양식 인식 실패");
+        renderAll(payload);
+        $("template-status").innerHTML = `<span class="status-ok">양식 인식 완료: 평가 항목 ${payload.phase1?.block_count ?? 0}개</span>`;
+        $("excel-status").innerHTML = payload.phase2
+          ? `<span class="status-ok">같은 평가 항목의 HWP로 확인되어 기존 성적 입력을 보존했습니다.</span>`
+          : "교과별 칸에 성적표 엑셀 파일을 넣으세요.";
+      } catch (error) {
+        $("template-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("양식 인식 실패", error.message);
+      } finally {
+        $("recognize-button").disabled = false;
+      }
+    }
+
+    function updateSubjectExcelFileName(input) {
+      const card = input.closest(".subject-upload-card");
+      const nameEl = card?.querySelector('[data-role="file-name"]');
+      const files = Array.from(input.files || []);
+      if (!nameEl) return;
+      if (!files.length) {
+        nameEl.textContent = "선택된 파일 없음";
+      } else if (files.length === 1) {
+        nameEl.textContent = files[0].name;
+      } else {
+        nameEl.textContent = `${files.length}개 파일 선택: ${files.map((file) => file.name).join(", ")}`;
+      }
+    }
+
+    function subjectFileInput(subject) {
+      return Array.from(document.querySelectorAll('input[type="file"][data-subject]'))
+        .find((input) => input.dataset.subject === subject);
+    }
+
+    async function importSubjectExcelFiles(subject) {
+      if (!phase1Data) {
+        $("excel-status").innerHTML = `<span class="status-bad">먼저 HWP 양식을 인식하세요.</span>`;
+        showErrorPopup("양식 인식 필요", "먼저 HWP 양식을 인식하세요.");
+        return;
+      }
+      const input = subjectFileInput(subject);
+      const card = input?.closest(".subject-upload-card");
+      const statusEl = card?.querySelector('[data-role="subject-status"]');
+      const button = card?.querySelector('button[data-action="import-subject"]');
+      const files = Array.from(input?.files || []);
+      if (!files.length) {
+        if (statusEl) statusEl.innerHTML = `<span class="status-bad">${escapeHtml(subject)} 엑셀 파일을 먼저 선택하세요.</span>`;
+        showErrorPopup("엑셀 파일 선택 필요", `${subject} 엑셀 파일을 먼저 선택하세요.`);
+        return;
+      }
+      if (button) button.disabled = true;
+      $("excel-status").textContent = `${subject} 엑셀 파일 ${files.length}개를 읽는 중입니다. Excel이 잠시 실행될 수 있습니다.`;
+      try {
+        let payload = null;
+        for (let index = 0; index < files.length; index += 1) {
+          const file = files[index];
+          const formData = new FormData();
+          formData.append("excel", file);
+          if (statusEl) statusEl.textContent = `${index + 1}/${files.length} 처리 중: ${file.name}`;
+          const response = await fetch(`/api/import-excel?subject=${encodeURIComponent(subject)}`, { method: "POST", body: formData });
+          payload = await response.json();
+          if (!payload.ok) throw new Error(payload.error || `${file.name} 불러오기 실패`);
+          renderAll(payload);
+        }
+        const errorCount = payload.phase2?.error_count ?? 0;
+        const warningCount = payload.phase2?.warning_count ?? 0;
+        const studentCount = payload.phase2?.student_count ?? 0;
+        const imported = payload.phase2?.metadata?.imported_column_count ?? payload.phase2?.block_count ?? 0;
+        const expected = payload.phase2?.metadata?.expected_column_count ?? phase1Data?.block_count ?? imported;
+        const cls = errorCount ? "status-bad" : warningCount ? "status-warn" : "status-ok";
+        $("excel-status").innerHTML = `<span class="${cls}">엑셀 불러오기 완료: 입력 ${imported}/${expected}, 학생 ${studentCount}명, 오류 ${errorCount}건, 경고 ${warningCount}건</span>`;
+        if (statusEl) statusEl.innerHTML = `<span class="${cls}">${escapeHtml(subject)} 반영 완료</span>`;
+        showPhase2IssuePopup(payload.phase2, `${subject} 엑셀 반영`);
+      } catch (error) {
+        if (statusEl) statusEl.innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        $("excel-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("엑셀 불러오기 실패", error.message);
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    async function resetScores() {
+      if (!phase1Data) {
+        showErrorPopup("양식 인식 필요", "먼저 HWP 양식을 인식하세요.");
+        return;
+      }
+      if (!confirm("현재 반영된 성적 엑셀과 출력 준비 데이터를 모두 지우고 다시 입력할까요?")) {
+        return;
+      }
+      $("reset-scores-button").disabled = true;
+      $("excel-status").textContent = "성적 입력 상태를 초기화하는 중입니다.";
+      try {
+        const response = await fetch("/api/reset-scores", { method: "POST" });
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "성적 입력 초기화 실패");
+        renderAll(payload);
+        $("excel-status").innerHTML = `<span class="status-ok">성적 입력을 초기화했습니다. 과목별 엑셀을 다시 넣으세요.</span>`;
+      } catch (error) {
+        $("excel-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("성적 입력 초기화 실패", error.message);
+      } finally {
+        $("reset-scores-button").disabled = !phase1Data || !phase2Data;
+      }
+    }
+
+    async function prepareOutputData() {
+      $("prepare-output-button").disabled = true;
+      $("output-status").textContent = "학생별 출력 데이터를 만드는 중입니다.";
+      try {
+        const response = await fetch("/api/prepare-reports", { method: "POST" });
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "출력 준비 실패");
+        renderAll(payload);
+        if (!payload.phase3?.ready) {
+          showPhase3IssuePopup(payload.phase3);
+        }
+      } catch (error) {
+        $("output-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("출력 준비 실패", error.message);
+      } finally {
+        $("prepare-output-button").disabled = !phase2Data;
+      }
+    }
+
+    function restoreGenerateButtons() {
+      const disabled = !phase3Data?.ready;
+      $("generate-sample-output-button").disabled = disabled;
+      $("generate-output-button").disabled = disabled;
+    }
+
+    async function generateHwpReports(limit = 0) {
+      const isSample = limit === 1;
+      $("generate-sample-output-button").disabled = true;
+      $("generate-output-button").disabled = true;
+      $("output-status").textContent = isSample
+        ? "첫 번째 학생 HWP 파일을 테스트 생성하는 중입니다."
+        : "HWP 파일을 생성하는 중입니다.";
+      try {
+        const response = await fetch("/api/generate-reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ limit }),
+        });
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "HWP 파일 생성 실패");
+        renderAll(payload);
+      } catch (error) {
+        $("output-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("HWP 파일 생성 실패", error.message);
+      } finally {
+        restoreGenerateButtons();
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      window.__hwpAlimiTestHooks = {
+        subjectKey,
+        subjectValueMatches,
+        issueMatchesSubject,
+        subjectCardState,
+        subjectsFromPhase1,
+      };
+    }
+
+    $("reload-button").addEventListener("click", loadAll);
+    $("recognize-button").addEventListener("click", recognizeTemplate);
+    $("reset-scores-button").addEventListener("click", resetScores);
+    $("prepare-output-button").addEventListener("click", prepareOutputData);
+    $("generate-sample-output-button").addEventListener("click", () => generateHwpReports(1));
+    $("generate-output-button").addEventListener("click", () => generateHwpReports(0));
+    $("notice-close").addEventListener("click", closeNoticePopup);
+    $("notice-ok").addEventListener("click", closeNoticePopup);
+    $("notice-overlay").addEventListener("click", (event) => {
+      if (event.target === $("notice-overlay")) closeNoticePopup();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !$("notice-overlay").hidden) closeNoticePopup();
+    });
+    $("subject-excel-list").addEventListener("change", (event) => {
+      const input = event.target.closest('input[type="file"][data-subject]');
+      if (!input) return;
+      updateSubjectExcelFileName(input);
+    });
+    $("subject-excel-list").addEventListener("click", (event) => {
+      const button = event.target.closest('button[data-action="import-subject"]');
+      if (!button) return;
+      importSubjectExcelFiles(button.dataset.subject);
+    });
+    $("student-list-rows").addEventListener("click", (event) => {
+      const row = event.target.closest("tr[data-student-index]");
+      if (!row) return;
+      selectedStudentIndex = Number(row.dataset.studentIndex);
+      renderStudentList(phase2Data);
+      renderSelectedStudent();
+    });
+    $("subject-filter").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-subject]");
+      if (!button) return;
+      selectedSubject = button.dataset.subject;
+      renderSubjectFilter(phase2Data);
+      renderSelectedStudent();
+    });
+    loadAll();
+  </script>
+</body>
+</html>
