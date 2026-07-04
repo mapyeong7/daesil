@@ -94,6 +94,14 @@ if (($manifest.PSObject.Properties.Name -contains "student_placeholders") -and $
         }
     }
 }
+$manifestSchoolInfoPlaceholders = @()
+if (($manifest.PSObject.Properties.Name -contains "school_info_placeholders") -and $manifest.school_info_placeholders) {
+    foreach ($placeholder in @($manifest.school_info_placeholders)) {
+        if ($placeholder.PSObject.Properties.Name -contains "find" -and -not [string]::IsNullOrWhiteSpace([string]$placeholder.find)) {
+            $manifestSchoolInfoPlaceholders += $placeholder
+        }
+    }
+}
 
 if (-not $manifest.ready) {
     $messages = @($manifest.blocking_issues | ForEach-Object { $_.message }) -join "`n - "
@@ -215,6 +223,49 @@ foreach ($student in $students) {
         }
         if (-not $replaceSucceeded) {
             throw "HWP student placeholder replace failed: $outputPath"
+        }
+
+        if ($manifestSchoolInfoPlaceholders.Count -gt 0) {
+            $schoolInfo = $manifest.school_info
+            $grade = [string]$schoolInfo.grade
+            $className = [string]$schoolInfo.class_name
+            $teacherName = [string]$schoolInfo.teacher_name
+            $wordGrade = -join ([char]0xD559, [char]0xB144)
+            $wordClass = [string][char]0xBC18
+            $wordHomeroom = -join ([char]0xB2F4, [char]0xC784)
+            $fullWidthColon = [string][char]0xFF1A
+            $schoolReplaceHits = 0
+            foreach ($placeholder in $manifestSchoolInfoPlaceholders) {
+                $find = [string]$placeholder.find
+                $kind = [string]$placeholder.kind
+                $replace = ""
+                if ($kind -eq "grade_class") {
+                    $replace = "{0}{1} {2}{3}" -f $grade, $wordGrade, $className, $wordClass
+                } elseif ($kind -eq "teacher") {
+                    $label = [string]$placeholder.label
+                    if ([string]::IsNullOrWhiteSpace($label)) {
+                        $label = $wordHomeroom
+                    }
+                    $separator = " "
+                    if ($placeholder.PSObject.Properties.Name -contains "separator") {
+                        $separator = [string]$placeholder.separator
+                    }
+                    if ([string]::IsNullOrWhiteSpace($separator)) {
+                        $separator = " "
+                    } elseif ($separator.Trim() -eq ":" -or $separator.Trim() -eq $fullWidthColon) {
+                        $separator = $separator.Trim() + " "
+                    }
+                    $replace = "{0}{1}{2}" -f $label, $separator, $teacherName
+                }
+                if (-not [string]::IsNullOrWhiteSpace($replace)) {
+                    if (Invoke-HwpAllReplace -Hwp $hwp -Find $find -Replace $replace) {
+                        $schoolReplaceHits += 1
+                    }
+                }
+            }
+            if ($schoolReplaceHits -lt $manifestSchoolInfoPlaceholders.Count) {
+                throw "HWP school info placeholder replace failed: $outputPath"
+            }
         }
 
         $saved = $hwp.SaveAs($outputPath, "HWP", "")

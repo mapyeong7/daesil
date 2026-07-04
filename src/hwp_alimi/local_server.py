@@ -32,11 +32,13 @@ from hwp_alimi.phase2 import (
 from hwp_alimi.phase3 import (
     build_phase3_payload,
     default_output_path as default_phase3_output_path,
+    normalize_school_info,
 )
 from hwp_alimi.hwp5_patch import (
     count_hwp_checkbox_states,
     count_hwp_text_occurrences,
     patch_hwp_checkboxes,
+    patch_hwp_school_info_placeholders,
     patch_hwp_student_placeholders,
     student_placeholder_replacement,
 )
@@ -113,10 +115,12 @@ def remove_files(paths: list[Path]) -> list[Path]:
 def read_state() -> dict:
     state = read_json_file(STATE_PATH)
     if state:
+        state["school_info"] = normalize_school_info(state.get("school_info"))
         return state
     return {
         "current_phase1_json": str(SAMPLE_PHASE1) if SAMPLE_PHASE1.exists() else None,
         "current_phase2_json": str(SAMPLE_PHASE2) if SAMPLE_PHASE2.exists() else None,
+        "school_info": normalize_school_info(None),
     }
 
 
@@ -1040,6 +1044,7 @@ def prepare_reports() -> dict:
 
     phase1_payload = read_json_file(phase1_path)
     phase2_payload = read_json_file(phase2_path)
+    school_info = normalize_school_info(state.get("school_info"))
     output_path = default_phase3_output_path(phase2_path or phase1_path, PHASE3_DIR)
     phase3_payload = build_phase3_payload(
         phase1_path,
@@ -1047,6 +1052,7 @@ def prepare_reports() -> dict:
         phase2_path,
         phase2_payload,
         PHASE3_DIR,
+        school_info,
     )
     write_json_file(output_path, phase3_payload)
     state["current_phase3_json"] = str(output_path)
@@ -1061,6 +1067,14 @@ def reset_scores() -> dict:
         raise ValueError("먼저 HWP 양식을 인식해야 합니다.")
 
     state["current_phase2_json"] = None
+    state["current_phase3_json"] = None
+    write_state(state)
+    return get_results()
+
+
+def save_school_info(payload: dict) -> dict:
+    state = read_state()
+    state["school_info"] = normalize_school_info(payload)
     state["current_phase3_json"] = None
     write_state(state)
     return get_results()
@@ -1140,6 +1154,8 @@ def run_hwp_report_generation_direct(manifest_payload: dict, output_dir: Path, l
     placeholders = list(manifest_payload.get("student_placeholders") or [])
     if not placeholders:
         raise ValueError("학생 이름 자리표시자 정보가 없어 직접 HWP 패치를 사용할 수 없습니다.")
+    school_info = normalize_school_info(manifest_payload.get("school_info"))
+    school_placeholders = list(manifest_payload.get("school_info_placeholders") or [])
 
     output_dir.mkdir(parents=True, exist_ok=True)
     students = list(manifest_payload.get("students") or [])
@@ -1162,6 +1178,10 @@ def run_hwp_report_generation_direct(manifest_payload: dict, output_dir: Path, l
             )
             if replacements <= 0:
                 raise ValueError(f"HWP 학생 이름 자리표시자를 직접 패치하지 못했습니다: {output_path.name}")
+            if school_placeholders:
+                school_replacements = patch_hwp_school_info_placeholders(output_path, school_placeholders, school_info)
+                if school_replacements <= 0:
+                    raise ValueError(f"HWP 기본 정보 자리표시자를 직접 패치하지 못했습니다: {output_path.name}")
             checkbox_ordinals = report_checkbox_ordinals(student)
             patch_hwp_checkboxes(output_path, checkbox_ordinals)
             validate_direct_generated_hwp(output_path, manifest_payload, student, placeholders, checkbox_ordinals)
@@ -1298,6 +1318,8 @@ def phase3_needs_refresh(phase3_payload: dict) -> bool:
         return True
     if not phase3_payload.get("student_placeholders"):
         return True
+    if "school_info" not in phase3_payload or "school_info_placeholders" not in phase3_payload:
+        return True
     for student in phase3_payload.get("students", []):
         for assessment in student.get("assessments", []):
             if assessment.get("should_mark") and not assessment.get("checkbox_ordinal"):
@@ -1425,6 +1447,8 @@ def get_results() -> dict:
         and phase3_payload
         and payload_source_matches(phase3_payload, "source_phase1_json", phase1_path)
         and payload_source_matches(phase3_payload, "source_phase2_json", phase2_path)
+        and not phase3_needs_refresh(phase3_payload)
+        and normalize_school_info(phase3_payload.get("school_info")) == normalize_school_info(state.get("school_info"))
     ):
         phase3_path = None
         phase3_payload = None
@@ -1433,6 +1457,7 @@ def get_results() -> dict:
         "phase1": phase1_payload,
         "phase2": phase2_payload,
         "phase3": phase3_payload,
+        "school_info": normalize_school_info(state.get("school_info")),
         "paths": {
             "phase1_json": existing_relative_url(phase1_path),
             "phase2_json": existing_relative_url(phase2_path),
@@ -1493,6 +1518,10 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 filename, content = parse_multipart_file(content_type, body, "excel")
                 expected_subject = (parse_qs(parsed_url.query).get("subject") or [""])[0]
                 self.send_json({"ok": True, **import_excel(filename, content, expected_subject)})
+                return
+            if path == "/api/school-info":
+                payload = json.loads(body.decode("utf-8") or "{}")
+                self.send_json({"ok": True, **save_school_info(payload)})
                 return
             if path == "/api/reset-scores":
                 self.send_json({"ok": True, **reset_scores()})

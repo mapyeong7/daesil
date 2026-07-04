@@ -18,6 +18,13 @@ STUDENT_PLACEHOLDER_RE = re.compile(
     rf"(?P<prefix>\d+\s*번\s*)?(?P<label>{'|'.join(re.escape(label) for label in STUDENT_NAME_LABELS)})\s*:\s*(?P<token>{STUDENT_PLACEHOLDER_TOKEN})",
     re.IGNORECASE,
 )
+GRADE_CLASS_PLACEHOLDER_RE = re.compile(r"(?P<grade>[0O○〇])\s*학년\s*(?P<class_name>[0O○〇])\s*반")
+TEACHER_LABELS = ("담임교사", "담임 교사", "담임명", "교사명", "담임", "교사")
+TEACHER_PLACEHOLDER_TOKEN = r"(?:[0O○〇](?:\s*[0O○〇]){1,3}|[_＿](?:\s*[_＿]){1,}|\.{3,})"
+TEACHER_PLACEHOLDER_RE = re.compile(
+    rf"(?P<label>{'|'.join(re.escape(label) for label in TEACHER_LABELS)})\s*(?P<separator>[:：]?\s*)(?P<token>{TEACHER_PLACEHOLDER_TOKEN})",
+    re.IGNORECASE,
+)
 
 
 def read_json(path: Path) -> dict:
@@ -107,6 +114,47 @@ def find_student_placeholders(text: str) -> list[dict]:
     return placeholders
 
 
+def normalize_school_info(school_info: dict | None) -> dict:
+    school_info = school_info or {}
+    return {
+        "grade": str(school_info.get("grade") or "").strip(),
+        "class_name": str(school_info.get("class_name") or school_info.get("class") or "").strip(),
+        "teacher_name": str(school_info.get("teacher_name") or school_info.get("teacher") or "").strip(),
+    }
+
+
+def find_school_info_placeholders(text: str) -> list[dict]:
+    placeholders: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+
+    for match in GRADE_CLASS_PLACEHOLDER_RE.finditer(text):
+        find = match.group(0)
+        key = ("grade_class", find)
+        if key in seen:
+            continue
+        seen.add(key)
+        placeholders.append({"kind": "grade_class", "find": find})
+
+    for match in TEACHER_PLACEHOLDER_RE.finditer(text):
+        find = match.group(0)
+        label = " ".join(match.group("label").split())
+        separator = match.group("separator")
+        key = ("teacher", find)
+        if key in seen:
+            continue
+        seen.add(key)
+        placeholders.append(
+            {
+                "kind": "teacher",
+                "find": find,
+                "label": label,
+                "separator": separator,
+            }
+        )
+
+    return placeholders
+
+
 def student_placeholders_from_phase1(phase1_payload: dict | None) -> list[dict]:
     extracted_text = str((phase1_payload or {}).get("extracted_text") or "").strip()
     if not extracted_text:
@@ -116,6 +164,19 @@ def student_placeholders_from_phase1(phase1_payload: dict | None) -> list[dict]:
         return []
     try:
         return find_student_placeholders(read_text_file(text_path))
+    except Exception:
+        return []
+
+
+def school_info_placeholders_from_phase1(phase1_payload: dict | None) -> list[dict]:
+    extracted_text = str((phase1_payload or {}).get("extracted_text") or "").strip()
+    if not extracted_text:
+        return []
+    text_path = Path(extracted_text)
+    if not text_path.exists():
+        return []
+    try:
+        return find_school_info_placeholders(read_text_file(text_path))
     except Exception:
         return []
 
@@ -152,6 +213,41 @@ def validate_student_placeholder(phase1_payload: dict) -> dict | None:
             "value": str(text_path),
         }
     return None
+
+
+def validate_school_info(school_info: dict | None) -> dict | None:
+    info = normalize_school_info(school_info)
+    missing: list[str] = []
+    if not info["grade"]:
+        missing.append("학년")
+    if not info["class_name"]:
+        missing.append("반")
+    if not info["teacher_name"]:
+        missing.append("교사 이름")
+    if not missing:
+        return None
+    return {
+        "severity": "error",
+        "message": "HWP에 넣을 기본 정보를 먼저 입력하고 저장하세요.",
+        "value": ", ".join(missing),
+    }
+
+
+def validate_school_info_placeholders(phase1_payload: dict) -> dict | None:
+    placeholders = school_info_placeholders_from_phase1(phase1_payload)
+    kinds = {placeholder.get("kind") for placeholder in placeholders}
+    missing: list[str] = []
+    if "grade_class" not in kinds:
+        missing.append("'0학년 0반'")
+    if "teacher" not in kinds:
+        missing.append("'담임: 000' 또는 '교사명: OOO'")
+    if not missing:
+        return None
+    return {
+        "severity": "error",
+        "message": "HWP 양식에서 학년/반/교사 이름 자리표시자를 찾지 못했습니다. 양식에 자리표시자를 넣은 뒤 다시 인식하세요.",
+        "value": ", ".join(missing),
+    }
 
 
 def level_text_for_block(block: dict, level: str | None) -> str:
@@ -288,15 +384,24 @@ def validate_phase3_inputs(
     phase1_payload: dict | None,
     phase2_path: Path | None,
     phase2_payload: dict | None,
+    school_info: dict | None = None,
 ) -> list[dict]:
     issues: list[dict] = []
     if not phase1_payload:
         issues.append({"severity": "error", "message": "HWP 양식 인식 결과가 없습니다."})
         return issues
 
+    school_info_issue = validate_school_info(school_info)
+    if school_info_issue:
+        issues.append(school_info_issue)
+
     placeholder_issue = validate_student_placeholder(phase1_payload)
     if placeholder_issue:
         issues.append(placeholder_issue)
+
+    school_placeholder_issue = validate_school_info_placeholders(phase1_payload)
+    if school_placeholder_issue:
+        issues.append(school_placeholder_issue)
 
     source_hwp = Path(str(phase1_payload.get("source_hwp") or ""))
     if not source_hwp.exists() or source_hwp.suffix.lower() not in {".hwp", ".hwpx"}:
@@ -414,8 +519,16 @@ def build_phase3_payload(
     phase2_path: Path | None,
     phase2_payload: dict | None,
     output_dir: Path,
+    school_info: dict | None = None,
 ) -> dict:
-    blocking_issues = validate_phase3_inputs(phase1_path, phase1_payload, phase2_path, phase2_payload)
+    normalized_school_info = normalize_school_info(school_info)
+    blocking_issues = validate_phase3_inputs(
+        phase1_path,
+        phase1_payload,
+        phase2_path,
+        phase2_payload,
+        normalized_school_info,
+    )
     blocks = phase1_blocks_by_index(phase1_payload or {})
     checkbox_ordinals = checkbox_ordinals_by_block(phase1_payload or {})
     students = [
@@ -428,6 +541,8 @@ def build_phase3_payload(
         "source_phase2_json": str(phase2_path) if phase2_path else None,
         "source_hwp": source_hwp,
         "student_placeholders": student_placeholders_from_phase1(phase1_payload),
+        "school_info": normalized_school_info,
+        "school_info_placeholders": school_info_placeholders_from_phase1(phase1_payload),
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "ready": not blocking_issues,
         "blocking_issues": blocking_issues,

@@ -562,6 +562,69 @@ class LocalServerMergeTest(unittest.TestCase):
         self.assertEqual(checkbox_calls, [("01_김대실.hwp", [2]), ("01_김대실_2.hwp", [5])])
         self.assertEqual(validation_calls, [("01_김대실.hwp", [2]), ("01_김대실_2.hwp", [5])])
 
+    def test_direct_hwp_generation_patches_school_info_each_student(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            source_hwp = temp_root / "template.hwp"
+            output_dir = temp_root / "out"
+            source_hwp.write_bytes(b"fake hwp")
+            manifest = {
+                "source_hwp": str(source_hwp),
+                "student_placeholders": [{"find": "0번 이름: 000", "label": "이름", "includes_number": True}],
+                "school_info": {"grade": "3", "class_name": "2", "teacher_name": "홍길동"},
+                "school_info_placeholders": [
+                    {"kind": "grade_class", "find": "0학년 0반"},
+                    {"kind": "teacher", "find": "담임: 000", "label": "담임", "separator": ": "},
+                ],
+                "students": [{"number": "1", "name": "김대실", "assessments": []}],
+            }
+            school_calls: list[tuple[str, dict, int]] = []
+            original_name_patch = local_server.patch_hwp_student_placeholders
+            original_school_patch = local_server.patch_hwp_school_info_placeholders
+            original_checkbox_patch = local_server.patch_hwp_checkboxes
+            original_validation = local_server.validate_direct_generated_hwp
+            try:
+                local_server.patch_hwp_student_placeholders = lambda path, placeholders, number, name: 1
+                local_server.patch_hwp_school_info_placeholders = lambda path, placeholders, info: school_calls.append((Path(path).name, dict(info), len(placeholders))) or 2
+                local_server.patch_hwp_checkboxes = lambda path, ordinals: None
+                local_server.validate_direct_generated_hwp = lambda path, manifest, student, placeholders, ordinals: None
+
+                created = local_server.run_hwp_report_generation_direct(manifest, output_dir)
+            finally:
+                local_server.patch_hwp_student_placeholders = original_name_patch
+                local_server.patch_hwp_school_info_placeholders = original_school_patch
+                local_server.patch_hwp_checkboxes = original_checkbox_patch
+                local_server.validate_direct_generated_hwp = original_validation
+
+        self.assertEqual([Path(path).name for path in created], ["01_김대실.hwp"])
+        self.assertEqual(school_calls, [("01_김대실.hwp", {"grade": "3", "class_name": "2", "teacher_name": "홍길동"}, 2)])
+
+    def test_save_school_info_normalizes_and_clears_phase3(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_path = Path(temp_dir) / "server_state.json"
+            local_server.write_json_file(
+                state_path,
+                {
+                    "school_info": {"grade": "2", "class_name": "1", "teacher_name": "이전"},
+                    "current_phase3_json": "old.phase3.json",
+                },
+            )
+
+            original_state_path = local_server.STATE_PATH
+            try:
+                local_server.STATE_PATH = state_path
+                payload = local_server.save_school_info(
+                    {"grade": " 3 ", "class_name": " 2 ", "teacher_name": " 홍길동 "}
+                )
+            finally:
+                local_server.STATE_PATH = original_state_path
+
+            state = local_server.read_json_file(state_path)
+
+        self.assertEqual(payload["school_info"], {"grade": "3", "class_name": "2", "teacher_name": "홍길동"})
+        self.assertEqual(state["school_info"], {"grade": "3", "class_name": "2", "teacher_name": "홍길동"})
+        self.assertIsNone(state["current_phase3_json"])
+
     def test_direct_hwp_generation_removes_failed_candidate_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
@@ -1021,6 +1084,8 @@ class LocalServerMergeTest(unittest.TestCase):
                 {
                     "expected_checkbox_count": 3,
                     "student_placeholders": [{"find": "0번 이름: 000"}],
+                    "school_info": {"grade": "3", "class_name": "2", "teacher_name": "홍길동"},
+                    "school_info_placeholders": [{"kind": "grade_class", "find": "0학년 0반"}],
                     "students": [{"assessments": [{"should_mark": True, "checkbox_ordinal": 1}]}],
                 }
             )
@@ -1072,6 +1137,8 @@ class LocalServerMergeTest(unittest.TestCase):
                     "ready": True,
                     "expected_checkbox_count": 3,
                     "student_placeholders": [{"find": "0번 이름: 000"}],
+                    "school_info": {"grade": "3", "class_name": "2", "teacher_name": "홍길동"},
+                    "school_info_placeholders": [{"kind": "grade_class", "find": "0학년 0반"}],
                     "students": [{"number": "1", "name": "김대실", "assessments": []}],
                     "generated_at": "old",
                     "generated_mode": "sample",

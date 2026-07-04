@@ -31,12 +31,6 @@
       line-height: 1.5;
     }
 
-    header {
-      background: var(--panel);
-      border-bottom: 1px solid var(--line);
-      padding: 18px 24px;
-    }
-
     h1 {
       margin: 0;
       font-size: 22px;
@@ -499,7 +493,276 @@
       border-left-color: var(--warn);
     }
 
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      padding: 18px 14px;
+    }
+
+    .brand {
+      padding: 4px 6px 16px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .step-nav-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step-nav {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      text-align: left;
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .step-nav:hover,
+    .step-nav.active {
+      border-color: #b8c2cf;
+      background: #f4f7fb;
+    }
+
+    .step-nav.state-alert {
+      border-color: #e6a39c;
+      background: #fff1f0;
+    }
+
+    .step-nav.state-alert:hover,
+    .step-nav.state-alert.active {
+      border-color: var(--bad);
+      background: #ffe7e4;
+    }
+
+    .step-nav.state-alert.active {
+      box-shadow: inset 3px 0 0 var(--bad);
+    }
+
+    .step-nav.state-ok {
+      border-color: #b9ddc9;
+      background: #f3fbf6;
+    }
+
+    .step-nav.state-ok:hover,
+    .step-nav.state-ok.active {
+      border-color: var(--ok);
+      background: #eaf7ef;
+    }
+
+    .step-nav.active {
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .step-no {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: inline-grid;
+      place-items: center;
+      background: #eef2f6;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .step-nav.active .step-no {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .step-nav.state-alert .step-no {
+      background: var(--bad);
+      color: #ffffff;
+    }
+
+    .step-nav.state-ok .step-no {
+      background: var(--ok);
+      color: #ffffff;
+    }
+
+    .step-label {
+      display: block;
+      font-weight: 700;
+    }
+
+    .step-status {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .step-nav.state-alert .step-status {
+      color: var(--bad);
+      font-weight: 700;
+    }
+
+    .step-nav.state-ok .step-status {
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    .sidebar-section {
+      margin-top: 16px;
+      padding: 12px 6px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .sidebar-section-title {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sidebar-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .sidebar-metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 6px;
+      background: #fbfcfd;
+    }
+
+    .sidebar-metric span,
+    .sidebar-metric strong {
+      display: block;
+      text-align: center;
+    }
+
+    .sidebar-metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sidebar-metric strong {
+      margin-top: 2px;
+      font-size: 18px;
+    }
+
+    .sidebar-actions {
+      display: grid;
+      gap: 6px;
+    }
+
+    .sidebar-actions .button,
+    .sidebar-actions button {
+      width: 100%;
+      text-align: center;
+    }
+
+    main.content {
+      max-width: none;
+      margin: 0;
+      padding: 24px;
+      min-width: 0;
+    }
+
+    .step-panel {
+      display: none;
+    }
+
+    .step-panel.active {
+      display: block;
+    }
+
+    .step-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .step-title-row h1 {
+      font-size: 24px;
+    }
+
+    .step-lede {
+      margin-top: 4px;
+      color: var(--muted);
+    }
+
+    .info-form {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-weight: 700;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid #b8c2cf;
+      border-radius: 6px;
+      padding: 9px 10px;
+      font: inherit;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+    }
+
     @media (max-width: 900px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      main.content {
+        padding: 16px;
+      }
+
       .span-4,
       .span-6,
       .span-8 {
@@ -513,172 +776,280 @@
       .student-layout {
         grid-template-columns: 1fr;
       }
+
+      .info-form {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>배움성장알리미 결과 확인</h1>
-    <div class="muted">HWP 양식을 먼저 인식하고, 과목별 NEIS 엑셀 파일을 누적해 결과를 확인합니다.</div>
-  </header>
-
-  <main>
-    <div class="toolbar">
-      <div id="load-status" class="muted">결과 파일을 불러오는 중입니다.</div>
-      <div>
-        <button class="primary" id="reload-button" type="button">새로고침</button>
-        <a class="button" id="phase1-link" href="#">Phase 1 JSON</a>
-        <a class="button" id="phase2-link" href="#">Phase 2 JSON</a>
-        <a class="button" id="phase3-link" href="#">Phase 3 JSON</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="작업 단계">
+      <div class="brand">
+        <div class="brand-title">배움성장알리미</div>
+        <div class="brand-subtitle" id="load-status">결과 파일을 불러오는 중입니다.</div>
       </div>
-    </div>
 
-    <section class="grid">
-      <article class="panel span-4">
-        <h2>요약</h2>
-        <div class="panel-body">
-          <div class="metric-row">
-            <div class="metric">
-              <span class="muted">평가 항목</span>
-              <strong id="metric-blocks">-</strong>
+      <nav class="step-nav-list">
+        <button class="step-nav active" type="button" data-step-target="basic">
+          <span class="step-no">1</span>
+          <span>
+            <span class="step-label">기본 정보</span>
+            <span class="step-status" id="step-basic-status">미입력</span>
+          </span>
+        </button>
+        <button class="step-nav" type="button" data-step-target="template">
+          <span class="step-no">2</span>
+          <span>
+            <span class="step-label">HWP 양식</span>
+            <span class="step-status" id="step-template-status">대기</span>
+          </span>
+        </button>
+        <button class="step-nav" type="button" data-step-target="excel">
+          <span class="step-no">3</span>
+          <span>
+            <span class="step-label">과목별 엑셀</span>
+            <span class="step-status" id="step-excel-status">대기</span>
+          </span>
+        </button>
+        <button class="step-nav" type="button" data-step-target="review">
+          <span class="step-no">4</span>
+          <span>
+            <span class="step-label">검토</span>
+            <span class="step-status" id="step-review-status">대기</span>
+          </span>
+        </button>
+        <button class="step-nav" type="button" data-step-target="output">
+          <span class="step-no">5</span>
+          <span>
+            <span class="step-label">HWP 출력</span>
+            <span class="step-status" id="step-output-status">대기</span>
+          </span>
+        </button>
+      </nav>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">현재 상태</div>
+        <div class="sidebar-metrics">
+          <div class="sidebar-metric">
+            <span>평가</span>
+            <strong id="metric-blocks">-</strong>
+          </div>
+          <div class="sidebar-metric">
+            <span>학생</span>
+            <strong id="metric-students">-</strong>
+          </div>
+          <div class="sidebar-metric">
+            <span>확인</span>
+            <strong id="metric-issues">-</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-actions">
+          <button class="primary" id="reload-button" type="button">새로고침</button>
+          <a class="button" id="phase1-link" href="#">Phase 1 JSON</a>
+          <a class="button" id="phase2-link" href="#">Phase 2 JSON</a>
+          <a class="button" id="phase3-link" href="#">Phase 3 JSON</a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section class="step-panel active" data-step-panel="basic">
+        <div class="step-title-row">
+          <div>
+            <h1>기본 정보</h1>
+            <div class="step-lede">학년, 반, 교사 이름은 생성되는 모든 HWP에 반영됩니다.</div>
+          </div>
+        </div>
+
+        <article class="panel">
+          <h2>학급 정보</h2>
+          <div class="panel-body">
+            <div class="info-form">
+              <div class="field">
+                <label for="grade-input">학년</label>
+                <input id="grade-input" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 3">
+              </div>
+              <div class="field">
+                <label for="class-input">반</label>
+                <input id="class-input" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 2">
+              </div>
+              <div class="field">
+                <label for="teacher-input">교사 이름</label>
+                <input id="teacher-input" type="text" autocomplete="off" placeholder="예: 홍길동">
+              </div>
             </div>
-            <div class="metric">
-              <span class="muted">학생</span>
-              <strong id="metric-students">-</strong>
+            <div class="form-row" style="margin-top: 12px;">
+              <button class="primary" id="save-school-info-button" type="button">기본 정보 저장</button>
             </div>
-            <div class="metric">
-              <span class="muted">확인 필요</span>
-              <strong id="metric-issues">-</strong>
+            <div class="muted action-status" id="school-info-status">학년, 반, 교사 이름을 입력하세요.</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="step-panel" data-step-panel="template">
+        <div class="step-title-row">
+          <div>
+            <h1>HWP 양식</h1>
+            <div class="step-lede">양식에서 교과, 영역, 평가 항목, 자리표시자를 읽습니다.</div>
+          </div>
+        </div>
+
+        <section class="grid">
+          <article class="panel span-12">
+            <h2>양식 인식</h2>
+            <div class="panel-body">
+              <div class="form-row">
+                <input id="template-file" type="file" accept=".hwp,.hwpx">
+                <button class="primary" id="recognize-button" type="button">양식 인식</button>
+              </div>
+              <div class="muted action-status" id="template-status">HWP 양식 파일을 선택한 뒤 인식 버튼을 누르세요.</div>
             </div>
-          </div>
-        </div>
-      </article>
+          </article>
 
-      <article class="panel span-8">
-        <h2>Phase 2 상태</h2>
-        <div class="panel-body" id="phase2-status">-</div>
-      </article>
-
-      <article class="panel span-6">
-        <h2>1. HWP 양식 인식</h2>
-        <div class="panel-body">
-          <div class="form-row">
-            <input id="template-file" type="file" accept=".hwp,.hwpx">
-            <button class="primary" id="recognize-button" type="button">양식 인식</button>
-          </div>
-          <div class="muted action-status" id="template-status">HWP 양식 파일을 선택한 뒤 인식 버튼을 누르세요.</div>
-        </div>
-      </article>
-
-      <article class="panel span-12">
-        <h2>2. 과목별 성적표 입력</h2>
-        <div class="panel-body">
-          <div class="callout muted">
-            HWP 양식에서 추출된 교과별로 엑셀 선택 칸이 자동으로 생깁니다.
-            각 교과 칸에 NEIS에서 내려받은 해당 교과 엑셀 파일을 넣으면 HWP 평가 목록에 맞는 항목만 누적합니다.
-          </div>
-          <div class="form-row">
-            <button id="reset-scores-button" type="button">성적 입력 초기화</button>
-          </div>
-          <div id="subject-excel-list" class="subject-upload-grid"></div>
-          <div class="muted action-status" id="excel-status">양식 인식 후 과목별 NEIS 엑셀 파일을 불러오세요.</div>
-        </div>
-      </article>
-
-      <article class="panel span-12">
-        <h2>3. 출력 준비</h2>
-        <div class="panel-body">
-          <div class="form-row">
-            <button class="primary" id="prepare-output-button" type="button">학생별 출력 데이터 만들기</button>
-            <button id="generate-sample-output-button" type="button">1명 테스트 생성</button>
-            <button id="generate-output-button" type="button">HWP 파일 생성</button>
-          </div>
-          <div class="muted action-status" id="output-status">성적 입력을 마치면 학생별 HWP 출력 준비 데이터를 만들 수 있습니다.</div>
-        </div>
-      </article>
-
-      <article class="panel span-12">
-        <h2>HWP 양식 평가 목록</h2>
-        <div class="panel-body">
-          <div class="scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 60px;">순서</th>
-                  <th style="width: 110px;">교과</th>
-                  <th style="width: 150px;">영역</th>
-                  <th>평가 요소</th>
-                </tr>
-              </thead>
-              <tbody id="block-rows"></tbody>
-            </table>
-          </div>
-        </div>
-      </article>
-
-      <article class="panel span-12">
-        <h2>학생별 입력 결과</h2>
-        <div class="panel-body">
-          <div class="student-layout">
-            <section class="student-list">
+          <article class="panel span-12">
+            <h2>HWP 양식 평가 목록</h2>
+            <div class="panel-body">
               <div class="scroll">
                 <table>
                   <thead>
                     <tr>
-                      <th style="width: 64px;">번호</th>
-                      <th>이름</th>
-                      <th style="width: 92px;">입력</th>
-                      <th style="width: 78px;">확인</th>
-                    </tr>
-                  </thead>
-                  <tbody id="student-list-rows"></tbody>
-                </table>
-              </div>
-            </section>
-            <section class="student-detail">
-              <div class="detail-title">
-                <strong id="selected-student-title">학생을 선택하세요.</strong>
-                <span class="muted summary-count" id="selected-student-summary">-</span>
-              </div>
-              <div class="filter-row" id="subject-filter"></div>
-              <div class="scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 96px;">교과</th>
-                      <th style="width: 130px;">영역</th>
+                      <th style="width: 60px;">순서</th>
+                      <th style="width: 110px;">교과</th>
+                      <th style="width: 150px;">영역</th>
                       <th>평가 요소</th>
-                      <th style="width: 96px;">결과</th>
-                      <th style="width: 96px;">원본</th>
                     </tr>
                   </thead>
-                  <tbody id="student-detail-rows"></tbody>
+                  <tbody id="block-rows"></tbody>
                 </table>
               </div>
-            </section>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section class="step-panel" data-step-panel="excel">
+        <div class="step-title-row">
+          <div>
+            <h1>과목별 엑셀</h1>
+            <div class="step-lede">양식에서 찾은 교과마다 NEIS 엑셀을 따로 넣습니다.</div>
+          </div>
+          <button id="reset-scores-button" type="button">성적 입력 초기화</button>
+        </div>
+
+        <article class="panel">
+          <h2>교과별 성적표 입력</h2>
+          <div class="panel-body">
+            <div id="subject-excel-list" class="subject-upload-grid"></div>
+            <div class="muted action-status" id="excel-status">양식 인식 후 과목별 NEIS 엑셀 파일을 불러오세요.</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="step-panel" data-step-panel="review">
+        <div class="step-title-row">
+          <div>
+            <h1>검토</h1>
+            <div class="step-lede">학생 명단, 누락, 오류를 확인합니다.</div>
           </div>
         </div>
-      </article>
 
-      <article class="panel span-12">
-        <h2>확인 필요 항목</h2>
-        <div class="panel-body" id="issue-list">-</div>
-      </article>
-    </section>
+        <div class="review-grid">
+          <article class="panel">
+            <h2>성적 입력 상태</h2>
+            <div class="panel-body" id="phase2-status">-</div>
+          </article>
 
-    <div id="notice-overlay" class="notice-overlay" role="dialog" aria-modal="true" aria-labelledby="notice-title" hidden>
-      <div class="notice-dialog">
-        <div class="notice-head">
-          <h2 id="notice-title">확인 필요</h2>
-          <button id="notice-close" class="notice-close" type="button" aria-label="닫기">×</button>
+          <article class="panel">
+            <h2>학생별 입력 결과</h2>
+            <div class="panel-body">
+              <div class="student-layout">
+                <section class="student-list">
+                  <div class="scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th style="width: 64px;">번호</th>
+                          <th>이름</th>
+                          <th style="width: 92px;">입력</th>
+                          <th style="width: 78px;">확인</th>
+                        </tr>
+                      </thead>
+                      <tbody id="student-list-rows"></tbody>
+                    </table>
+                  </div>
+                </section>
+                <section class="student-detail">
+                  <div class="detail-title">
+                    <strong id="selected-student-title">학생을 선택하세요.</strong>
+                    <span class="muted summary-count" id="selected-student-summary">-</span>
+                  </div>
+                  <div class="filter-row" id="subject-filter"></div>
+                  <div class="scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th style="width: 96px;">교과</th>
+                          <th style="width: 130px;">영역</th>
+                          <th>평가 요소</th>
+                          <th style="width: 96px;">결과</th>
+                          <th style="width: 96px;">원본</th>
+                        </tr>
+                      </thead>
+                      <tbody id="student-detail-rows"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <h2>확인 필요 항목</h2>
+            <div class="panel-body" id="issue-list">-</div>
+          </article>
         </div>
-        <div id="notice-body" class="notice-body"></div>
-        <div class="notice-actions">
-          <button class="primary" id="notice-ok" type="button">확인</button>
+      </section>
+
+      <section class="step-panel" data-step-panel="output">
+        <div class="step-title-row">
+          <div>
+            <h1>HWP 출력</h1>
+            <div class="step-lede">출력 준비 후 테스트 1명 또는 전체 성적표를 생성합니다.</div>
+          </div>
+        </div>
+
+        <article class="panel">
+          <h2>학생별 파일 생성</h2>
+          <div class="panel-body">
+            <div class="form-row">
+              <button class="primary" id="prepare-output-button" type="button">학생별 출력 데이터 만들기</button>
+              <button id="generate-sample-output-button" type="button">1명 테스트 생성</button>
+              <button id="generate-output-button" type="button">HWP 파일 생성</button>
+            </div>
+            <div class="muted action-status" id="output-status">성적 입력을 마치면 학생별 HWP 출력 준비 데이터를 만들 수 있습니다.</div>
+          </div>
+        </article>
+      </section>
+
+      <div id="notice-overlay" class="notice-overlay" role="dialog" aria-modal="true" aria-labelledby="notice-title" hidden>
+        <div class="notice-dialog">
+          <div class="notice-head">
+            <h2 id="notice-title">확인 필요</h2>
+            <button id="notice-close" class="notice-close" type="button" aria-label="닫기">×</button>
+          </div>
+          <div id="notice-body" class="notice-body"></div>
+          <div class="notice-actions">
+            <button class="primary" id="notice-ok" type="button">확인</button>
+          </div>
         </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
@@ -686,6 +1057,8 @@
     let phase2Data = null;
     let phase3Data = null;
     let resultPaths = {};
+    let schoolInfo = { grade: "", class_name: "", teacher_name: "" };
+    let activeStep = "basic";
     let selectedStudentIndex = 0;
     let selectedSubject = "전체";
 
@@ -696,6 +1069,100 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function queryAll(selector) {
+      if (!document.querySelectorAll) return [];
+      return Array.from(document.querySelectorAll(selector));
+    }
+
+    function setText(id, value) {
+      const element = $(id);
+      if (element) element.textContent = value;
+    }
+
+    function setStepStatus(step, text, state) {
+      setText(`step-${step}-status`, text);
+      const button = queryAll("[data-step-target]").find((item) => item.dataset.stepTarget === step);
+      if (!button) return;
+      button.classList.remove("state-alert", "state-ok");
+      if (state === "alert") {
+        button.classList.add("state-alert");
+      } else if (state === "ok") {
+        button.classList.add("state-ok");
+      }
+    }
+
+    function normalizeSchoolInfo(info) {
+      return {
+        grade: String(info?.grade || "").trim(),
+        class_name: String(info?.class_name || info?.class || "").trim(),
+        teacher_name: String(info?.teacher_name || info?.teacher || "").trim(),
+      };
+    }
+
+    function schoolInfoComplete(info = schoolInfo) {
+      const normalized = normalizeSchoolInfo(info);
+      return Boolean(normalized.grade && normalized.class_name && normalized.teacher_name);
+    }
+
+    function schoolInfoText(info = schoolInfo) {
+      const normalized = normalizeSchoolInfo(info);
+      if (!schoolInfoComplete(normalized)) return "미입력";
+      return `${normalized.grade}학년 ${normalized.class_name}반 · ${normalized.teacher_name}`;
+    }
+
+    function setActiveStep(step) {
+      activeStep = step;
+      queryAll("[data-step-panel]").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.stepPanel === step);
+      });
+      queryAll("[data-step-target]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.stepTarget === step);
+      });
+    }
+
+    function renderSchoolInfo(info) {
+      schoolInfo = normalizeSchoolInfo(info);
+      $("grade-input").value = schoolInfo.grade;
+      $("class-input").value = schoolInfo.class_name;
+      $("teacher-input").value = schoolInfo.teacher_name;
+      $("school-info-status").innerHTML = schoolInfoComplete()
+        ? `<span class="status-ok">저장됨: ${escapeHtml(schoolInfoText())}</span>`
+        : `<span class="status-warn">학년, 반, 교사 이름을 입력하세요.</span>`;
+    }
+
+    function updateStepStatuses() {
+      setStepStatus("basic", schoolInfoText(), schoolInfoComplete() ? "ok" : "alert");
+      setStepStatus("template", phase1Data ? `평가 ${phase1Data.block_count ?? 0}개` : "대기", phase1Data ? "ok" : "alert");
+
+      if (!phase1Data) {
+        setStepStatus("excel", "양식 필요", "alert");
+      } else if (!phase2Data) {
+        setStepStatus("excel", "미입력", "alert");
+      } else {
+        const imported = phase2Data.metadata?.imported_column_count ?? (phase2Data.columns || []).length;
+        const expected = phase2Data.metadata?.expected_column_count ?? phase1Data.block_count ?? imported;
+        const phase2ErrorCount = phase2Data.error_count ?? (phase2Data.issues || []).filter((issue) => issue.severity !== "warning").length;
+        const excelState = imported >= expected && !phase2ErrorCount ? "ok" : "alert";
+        setStepStatus("excel", `${imported}/${expected}`, excelState);
+      }
+
+      if (!phase2Data) {
+        setStepStatus("review", "대기", "alert");
+      } else {
+        const issues = phase2Data.issues || [];
+        setStepStatus("review", issues.length ? `확인 ${issues.length}건` : "통과", issues.length ? "alert" : "ok");
+      }
+
+      if (!phase3Data) {
+        setStepStatus("output", "대기", "alert");
+      } else if (phase3Data.ready) {
+        const generated = (phase3Data.generated_files || []).length;
+        setStepStatus("output", generated ? `생성 ${generated}개` : "준비 완료", "ok");
+      } else {
+        setStepStatus("output", `확인 ${phase3Data.blocking_issues?.length || 0}건`, "alert");
+      }
     }
 
     function closeNoticePopup() {
@@ -1241,6 +1708,7 @@
       phase2Data = payload.phase2 || null;
       phase3Data = payload.phase3 || null;
       resultPaths = payload.paths || {};
+      schoolInfo = normalizeSchoolInfo(payload.school_info);
       selectedStudentIndex = 0;
       selectedSubject = "전체";
 
@@ -1255,12 +1723,14 @@
       $("generate-sample-output-button").disabled = !phase3Data?.ready;
       $("generate-output-button").disabled = !phase3Data?.ready;
 
+      renderSchoolInfo(schoolInfo);
       renderPhase2Status(phase2Data);
       renderBlocks(phase1Data);
       renderSubjectExcelInputs(phase1Data, phase2Data);
       renderStudents(phase2Data);
       renderIssues(phase2Data);
       renderPhase3Status(phase3Data);
+      updateStepStatuses();
     }
 
     async function loadAll() {
@@ -1273,6 +1743,39 @@
         $("load-status").textContent = "불러오기 실패";
         $("phase2-status").innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
         showErrorPopup("결과 불러오기 실패", error.message);
+      }
+    }
+
+    async function saveSchoolInfo() {
+      const nextInfo = normalizeSchoolInfo({
+        grade: $("grade-input").value,
+        class_name: $("class-input").value,
+        teacher_name: $("teacher-input").value,
+      });
+      if (!schoolInfoComplete(nextInfo)) {
+        $("school-info-status").innerHTML = `<span class="status-bad">학년, 반, 교사 이름을 모두 입력하세요.</span>`;
+        showErrorPopup("기본 정보 입력 필요", "학년, 반, 교사 이름을 모두 입력하세요.");
+        return;
+      }
+
+      $("save-school-info-button").disabled = true;
+      $("school-info-status").textContent = "기본 정보를 저장하는 중입니다.";
+      try {
+        const response = await fetch("/api/school-info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(nextInfo),
+        });
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "기본 정보 저장 실패");
+        renderAll(payload);
+        $("school-info-status").innerHTML = `<span class="status-ok">저장됨: ${escapeHtml(schoolInfoText(payload.school_info))}</span>`;
+        setActiveStep("template");
+      } catch (error) {
+        $("school-info-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("기본 정보 저장 실패", error.message);
+      } finally {
+        $("save-school-info-button").disabled = false;
       }
     }
 
@@ -1296,6 +1799,7 @@
         $("excel-status").innerHTML = payload.phase2
           ? `<span class="status-ok">같은 평가 항목의 HWP로 확인되어 기존 성적 입력을 보존했습니다.</span>`
           : "교과별 칸에 성적표 엑셀 파일을 넣으세요.";
+        setActiveStep("excel");
       } catch (error) {
         $("template-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
         showErrorPopup("양식 인식 실패", error.message);
@@ -1362,6 +1866,7 @@
         $("excel-status").innerHTML = `<span class="${cls}">엑셀 불러오기 완료: 입력 ${imported}/${expected}, 학생 ${studentCount}명, 오류 ${errorCount}건, 경고 ${warningCount}건</span>`;
         if (statusEl) statusEl.innerHTML = `<span class="${cls}">${escapeHtml(subject)} 반영 완료</span>`;
         showPhase2IssuePopup(payload.phase2, `${subject} 엑셀 반영`);
+        if (imported >= expected) setActiveStep("review");
       } catch (error) {
         if (statusEl) statusEl.innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
         $("excel-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
@@ -1406,6 +1911,7 @@
         if (!payload.phase3?.ready) {
           showPhase3IssuePopup(payload.phase3);
         }
+        setActiveStep("output");
       } catch (error) {
         $("output-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
         showErrorPopup("출력 준비 실패", error.message);
@@ -1436,6 +1942,7 @@
         const payload = await response.json();
         if (!payload.ok) throw new Error(payload.error || "HWP 파일 생성 실패");
         renderAll(payload);
+        setActiveStep("output");
       } catch (error) {
         $("output-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
         showErrorPopup("HWP 파일 생성 실패", error.message);
@@ -1454,7 +1961,11 @@
       };
     }
 
+    queryAll("[data-step-target]").forEach((button) => {
+      button.addEventListener("click", () => setActiveStep(button.dataset.stepTarget));
+    });
     $("reload-button").addEventListener("click", loadAll);
+    $("save-school-info-button").addEventListener("click", saveSchoolInfo);
     $("recognize-button").addEventListener("click", recognizeTemplate);
     $("reset-scores-button").addEventListener("click", resetScores);
     $("prepare-output-button").addEventListener("click", prepareOutputData);

@@ -9,8 +9,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from hwp_alimi.phase3 import (
     build_phase3_payload,
     expected_checkbox_count,
+    find_school_info_placeholders,
     find_student_placeholders,
     has_student_placeholder,
+    validate_school_info,
+    validate_school_info_placeholders,
     validate_student_placeholder,
 )
 
@@ -223,10 +226,22 @@ class Phase3ManifestTest(unittest.TestCase):
             ],
         )
 
+    def test_extracts_school_info_placeholders_for_generation_manifest(self):
+        placeholders = find_school_info_placeholders("대구대실초 0학년 0반 / 담임교사: OOO / 담임 0 0 0 (인)")
+
+        self.assertEqual(
+            placeholders,
+            [
+                {"kind": "grade_class", "find": "0학년 0반"},
+                {"kind": "teacher", "find": "담임교사: OOO", "label": "담임교사", "separator": ": "},
+                {"kind": "teacher", "find": "담임 0 0 0", "label": "담임", "separator": ""},
+            ],
+        )
+
     def test_build_phase3_payload_includes_detected_student_placeholders(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             text_path = Path(temp_dir) / "template.txt"
-            text_path.write_text("대구대실초 0번 이름 : 000", encoding="utf-8")
+            text_path.write_text("대구대실초 0학년 0반 담임: 000 / 0번 이름 : 000", encoding="utf-8")
             phase1 = phase1_payload("C:/fake/template.hwp")
             phase1["extracted_text"] = str(text_path)
 
@@ -236,12 +251,41 @@ class Phase3ManifestTest(unittest.TestCase):
                 Path("phase2.json"),
                 phase2_payload(),
                 Path("phase3_output"),
+                {"grade": "3", "class_name": "2", "teacher_name": "홍길동"},
             )
 
         self.assertEqual(
             payload["student_placeholders"],
             [{"find": "0번 이름 : 000", "label": "이름", "includes_number": True}],
         )
+        self.assertEqual(payload["school_info"], {"grade": "3", "class_name": "2", "teacher_name": "홍길동"})
+        self.assertEqual(
+            payload["school_info_placeholders"],
+            [
+                {"kind": "grade_class", "find": "0학년 0반"},
+                {"kind": "teacher", "find": "담임: 000", "label": "담임", "separator": ": "},
+            ],
+        )
+
+    def test_blocks_output_when_school_info_is_missing(self):
+        issue = validate_school_info({"grade": "3", "class_name": "", "teacher_name": ""})
+
+        self.assertIsNotNone(issue)
+        self.assertIn("기본 정보", issue["message"])
+        self.assertIn("반", issue["value"])
+        self.assertIn("교사 이름", issue["value"])
+
+    def test_blocks_output_when_school_info_placeholders_are_missing(self):
+        phase1 = phase1_payload()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            text_path = Path(temp_dir) / "template.txt"
+            text_path.write_text("대구대실초 0번 이름: 000", encoding="utf-8")
+            phase1["extracted_text"] = str(text_path)
+
+            issue = validate_school_info_placeholders(phase1)
+
+        self.assertIsNotNone(issue)
+        self.assertIn("학년/반/교사 이름 자리표시자", issue["message"])
 
     def test_blocks_output_when_student_placeholder_is_missing(self):
         phase1 = phase1_payload()
