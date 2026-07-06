@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
+# Local packages
+dist/
+
 # Local runtime state
 server_state.json
 server.out.log

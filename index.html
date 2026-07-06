@@ -298,6 +298,22 @@
       max-width: 100%;
     }
 
+    .output-action-row {
+      justify-content: space-between;
+    }
+
+    .output-primary-actions,
+    .output-secondary-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .output-secondary-actions {
+      margin-left: auto;
+    }
+
     .file-upload {
       display: flex;
       gap: 8px;
@@ -346,11 +362,109 @@
       margin-top: 10px;
     }
 
+    .basic-info-card .panel-body {
+      display: grid;
+      gap: 0;
+      padding: 0;
+    }
+
+    .basic-info-card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .basic-info-section {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .basic-info-section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .basic-info-section-head h3 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .basic-info-section-head .muted {
+      font-size: 13px;
+    }
+
+    .basic-save-strip {
+      margin-top: 14px;
+      border: 1px solid #b9c7d8;
+      border-radius: 8px;
+      background: #f7fbff;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .basic-info-card .basic-save-strip {
+      margin-top: 0;
+      border-width: 1px 0 0;
+      border-radius: 0 0 8px 8px;
+      padding: 14px;
+    }
+
+    .basic-save-copy {
+      display: grid;
+      gap: 3px;
+      min-width: 240px;
+    }
+
+    .basic-save-copy strong {
+      font-size: 15px;
+    }
+
+    .basic-save-strip .action-status {
+      margin-top: 0;
+      min-height: 0;
+    }
+
+    .basic-save-strip.status-only {
+      justify-content: flex-start;
+    }
+
     .subject-upload-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 10px;
       margin-top: 12px;
+    }
+
+    .subject-upload-section {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+      padding: 12px;
+    }
+
+    .subject-upload-section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .subject-upload-section-head strong {
+      font-size: 15px;
     }
 
     .subject-upload-card {
@@ -417,8 +531,55 @@
       margin-bottom: 10px;
     }
 
+    .roster-help,
+    .score-help {
+      border: 1px solid #d6dde6;
+      background: #f7fafc;
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 9px 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .roster-grid-shell {
+      max-height: 430px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #ffffff;
+    }
+
+    .roster-table {
+      min-width: 420px;
+      table-layout: fixed;
+    }
+
+    .roster-table th,
+    .roster-table td {
+      padding: 0;
+    }
+
+    .roster-table th {
+      padding: 8px;
+    }
+
+    .roster-table .row-index {
+      width: 46px;
+      min-width: 46px;
+      text-align: center;
+      color: var(--muted);
+      background: #eef2f6;
+      font-weight: 700;
+    }
+
+    .roster-table .delete-col {
+      width: 54px;
+      min-width: 54px;
+      text-align: center;
+    }
+
     .roster-table input,
-    .score-grid select {
+    .score-grid input {
       width: 100%;
       border: 1px solid #b8c2cf;
       border-radius: 6px;
@@ -428,12 +589,49 @@
       color: var(--text);
     }
 
+    .roster-table input {
+      border-color: transparent;
+      border-radius: 0;
+      min-height: 36px;
+      padding: 8px 10px;
+    }
+
+    .roster-table input:focus {
+      outline: 2px solid #2f80ed;
+      outline-offset: -2px;
+      background: #f8fbff;
+    }
+
+    .roster-table input::placeholder {
+      color: #9aa5b1;
+    }
+
     .row-action {
-      width: 34px;
-      min-width: 34px;
-      height: 34px;
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
       padding: 0;
       text-align: center;
+      border-color: transparent;
+      border-radius: 50%;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .row-action:hover,
+    .row-action:focus {
+      border-color: #ffc9c9;
+      background: #fff1f0;
+      color: var(--bad);
+    }
+
+    .row-action-placeholder {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
     }
 
     .subject-tabs {
@@ -465,46 +663,195 @@
       border-left-color: var(--bad);
     }
 
-    .score-grid {
+    .score-entry-shell {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+      overflow: hidden;
+    }
+
+    .score-entry-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f7fafc;
+    }
+
+    .score-entry-title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-width: 240px;
+    }
+
+    .score-entry-head strong {
+      font-size: 15px;
+    }
+
+    .score-entry-body {
+      padding: 14px;
+    }
+
+    .score-grid-shell {
       max-height: 560px;
+      border: 1px solid #cfd8e3;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: inset 0 1px 0 #f8fafc;
     }
 
     .score-grid table {
       min-width: 860px;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #ffffff;
     }
 
     .score-grid th,
     .score-grid td {
       min-width: 110px;
+      border-right: 1px solid #e3e9f0;
+      border-bottom: 1px solid #e3e9f0;
+    }
+
+    .score-grid .row-index {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      width: 46px;
+      min-width: 46px;
+      text-align: center;
+      color: #64748b;
+      background: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .score-grid td.row-index {
+      background: #f8fafc;
+      z-index: 2;
     }
 
     .score-grid .student-col {
       position: sticky;
-      left: 0;
+      left: 46px;
       z-index: 2;
-      background: #eef2f6;
+      background: #f1f5f9;
       min-width: 76px;
       width: 76px;
     }
 
     .score-grid td.student-col {
-      background: #ffffff;
+      background: #fbfdff;
       z-index: 1;
     }
 
     .score-grid .name-col {
       position: sticky;
-      left: 76px;
+      left: 122px;
       z-index: 2;
-      background: #eef2f6;
+      background: #f1f5f9;
       min-width: 116px;
       width: 116px;
     }
 
     .score-grid td.name-col {
-      background: #ffffff;
+      background: #fbfdff;
       z-index: 1;
       font-weight: 700;
+    }
+
+    .score-grid th,
+    .score-grid td {
+      padding: 0;
+    }
+
+    .score-grid th {
+      padding: 8px;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+      background: #f1f5f9;
+      vertical-align: middle;
+    }
+
+    .score-grid input {
+      border-color: transparent;
+      border-radius: 0;
+      min-height: 34px;
+      padding: 6px 8px;
+      text-align: center;
+      font-weight: 600;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .score-grid input:focus {
+      outline: 2px solid #2f80ed;
+      outline-offset: -2px;
+      background: #f8fbff;
+    }
+
+    .score-grid input::placeholder {
+      color: transparent;
+    }
+
+    .score-grid input.score-invalid {
+      background: #fff1f0;
+      color: var(--bad);
+    }
+
+    .score-grid input.paste-start {
+      background: #f8fbff;
+      box-shadow: inset 0 0 0 1px #2f80ed, inset 0 0 0 999px rgb(47 128 237 / 4%);
+    }
+
+    .score-grid input.paste-start::placeholder {
+      color: #0b5cab;
+      font-weight: 700;
+    }
+
+    .score-grid-message {
+      padding: 12px;
+    }
+
+    .score-save-strip {
+      margin-top: 12px;
+      border: 1px solid #b9c7d8;
+      border-radius: 8px;
+      background: #f7fbff;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .score-save-copy {
+      display: grid;
+      gap: 3px;
+      min-width: 240px;
+    }
+
+    .score-save-copy strong {
+      font-size: 15px;
+    }
+
+    .score-save-strip .action-status {
+      margin-top: 0;
+      min-height: 0;
+    }
+
+    .score-save-strip.status-only {
+      justify-content: flex-start;
     }
 
     .notice-overlay {
@@ -909,7 +1256,7 @@
         <button class="step-nav" type="button" data-step-target="excel">
           <span class="step-no">3</span>
           <span>
-            <span class="step-label">과목별 엑셀</span>
+            <span class="step-label">과목별 성적입력</span>
             <span class="step-status" id="step-excel-status">대기</span>
           </span>
         </button>
@@ -966,52 +1313,66 @@
           </div>
         </div>
 
-        <article class="panel">
-          <h2>학급 정보</h2>
+        <article class="panel basic-info-card">
+          <h2 class="basic-info-card-title">
+            <span>기본정보 입력</span>
+            <button class="primary" id="save-school-info-button" type="button">기본정보 전체 저장</button>
+          </h2>
           <div class="panel-body">
-            <div class="info-form">
-              <div class="field">
-                <label for="grade-input">학년</label>
-                <input id="grade-input" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 3">
+            <section class="basic-info-section">
+              <div class="basic-info-section-head">
+                <h3>학급정보</h3>
+                <span class="muted">생성되는 모든 HWP에 함께 반영됩니다.</span>
               </div>
-              <div class="field">
-                <label for="class-input">반</label>
-                <input id="class-input" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 2">
+              <div class="info-form">
+                <div class="field">
+                  <label for="grade-input">학년</label>
+                  <input id="grade-input" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 3">
+                </div>
+                <div class="field">
+                  <label for="class-input">반</label>
+                  <input id="class-input" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 2">
+                </div>
+                <div class="field">
+                  <label for="teacher-input">교사 이름</label>
+                  <input id="teacher-input" type="text" autocomplete="off" placeholder="예: 홍길동">
+                </div>
               </div>
-              <div class="field">
-                <label for="teacher-input">교사 이름</label>
-                <input id="teacher-input" type="text" autocomplete="off" placeholder="예: 홍길동">
-              </div>
-            </div>
-            <div class="form-row" style="margin-top: 12px;">
-              <button class="primary" id="save-school-info-button" type="button">기본 정보 저장</button>
-            </div>
-            <div class="muted action-status" id="school-info-status">학년, 반, 교사 이름을 입력하세요.</div>
-          </div>
-        </article>
+            </section>
 
-        <article class="panel" style="margin-top: 14px;">
-          <h2>학생 명단</h2>
-          <div class="panel-body">
-            <div class="roster-toolbar">
-              <button type="button" id="add-roster-row-button">학생 추가</button>
-              <button type="button" id="paste-roster-button">붙여넣기 반영</button>
-              <span class="muted">엑셀에서 번호와 이름 두 열을 복사해 아래 칸에 붙여넣을 수 있습니다.</span>
+            <section class="basic-info-section">
+              <div class="basic-info-section-head">
+                <h3>학생명단</h3>
+                <span class="muted">번호와 이름을 엑셀처럼 입력하고 붙여넣습니다.</span>
+              </div>
+              <div class="roster-toolbar">
+                <button type="button" id="add-roster-row-button">빈 줄 추가</button>
+                <button type="button" id="add-roster-batch-button">빈 줄 10개 추가</button>
+                <span class="muted">번호와 이름을 엑셀처럼 바로 입력합니다.</span>
+              </div>
+              <div class="roster-help">엑셀에서 번호와 이름 두 열을 복사한 뒤, 아래 표의 첫 번째 번호 칸에 바로 붙여넣으세요.</div>
+              <div class="scroll roster-grid-shell">
+                <table class="roster-table">
+                  <thead>
+                    <tr>
+                      <th class="row-index">#</th>
+                      <th style="width: 110px;">번호</th>
+                      <th>이름</th>
+                      <th class="delete-col">삭제</th>
+                    </tr>
+                  </thead>
+                  <tbody id="roster-rows"></tbody>
+                </table>
+              </div>
+              <div class="muted action-status" id="roster-status">학생 번호와 이름을 입력하세요.</div>
+            </section>
+
+            <div class="basic-save-strip status-only">
+              <div class="basic-save-copy">
+                <strong>기본정보 통합 저장</strong>
+                <span class="muted action-status" id="school-info-status">학급정보와 학생명단을 한 번에 저장합니다.</span>
+              </div>
             </div>
-            <textarea id="roster-paste-input" rows="3" placeholder="예:&#10;1	김대실&#10;2	이대실" style="width: 100%; border: 1px solid #b8c2cf; border-radius: 6px; padding: 9px 10px; font: inherit; resize: vertical;"></textarea>
-            <div class="scroll" style="margin-top: 10px; max-height: 360px;">
-              <table class="roster-table">
-                <thead>
-                  <tr>
-                    <th style="width: 90px;">번호</th>
-                    <th>이름</th>
-                    <th style="width: 54px;">삭제</th>
-                  </tr>
-                </thead>
-                <tbody id="roster-rows"></tbody>
-              </table>
-            </div>
-            <div class="muted action-status" id="roster-status">학생 번호와 이름을 입력하세요.</div>
           </div>
         </article>
       </section>
@@ -1060,8 +1421,8 @@
       <section class="step-panel" data-step-panel="excel">
         <div class="step-title-row">
           <div>
-            <h1>과목별 엑셀</h1>
-            <div class="step-lede">양식에서 찾은 교과마다 NEIS 엑셀을 따로 넣습니다.</div>
+            <h1>과목별 성적입력</h1>
+            <div class="step-lede">양식에서 찾은 교과마다 학생별 성적을 입력합니다.</div>
           </div>
           <button id="reset-scores-button" type="button">성적 입력 초기화</button>
         </div>
@@ -1070,13 +1431,32 @@
           <h2>교과별 성적표 입력</h2>
           <div class="panel-body">
             <div id="subject-tab-list" class="subject-tabs"></div>
-            <div id="subject-excel-list"></div>
-            <div class="score-toolbar" style="margin-top: 12px;">
-              <button class="primary" id="save-score-grid-button" type="button">현재 과목 그리드 저장</button>
-              <span class="muted">빈칸은 출력 시 아무것도 표시하지 않습니다.</span>
-            </div>
-            <div class="scroll score-grid" id="score-grid"></div>
-            <div class="muted action-status" id="excel-status">양식 인식 후 과목별 NEIS 엑셀 파일을 불러오세요.</div>
+            <section class="score-entry-shell">
+              <div class="score-entry-head">
+                <div class="score-entry-title">
+                  <strong>성적 입력</strong>
+                  <span class="muted" id="score-entry-summary">HWP 양식 인식 후 사용할 수 있습니다.</span>
+                </div>
+                <button class="primary" id="save-score-grid-button" type="button">현재 과목 저장</button>
+              </div>
+              <div class="score-entry-body">
+                <div class="score-help" id="score-paste-help">엑셀에서 학생 순서대로 정리된 상/중/하 표를 복사한 뒤, 첫 번째 성적 칸에 바로 붙여넣으세요. 빈칸은 출력 시 표시하지 않습니다.</div>
+                <div class="scroll score-grid score-grid-shell" id="score-grid" aria-describedby="score-paste-help"></div>
+                <div class="score-save-strip status-only">
+                  <div class="score-save-copy">
+                    <strong>현재 과목 성적 저장</strong>
+                    <span class="muted action-status" id="excel-status">양식 인식 후 과목별 NEIS 엑셀 파일을 불러오세요.</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="subject-upload-section">
+              <div class="subject-upload-section-head">
+                <strong>엑셀 파일로 불러오기</strong>
+                <span class="muted">필요할 때만 하단에서 NEIS 엑셀 파일을 선택합니다.</span>
+              </div>
+              <div id="subject-excel-list"></div>
+            </section>
           </div>
         </article>
       </section>
@@ -1157,10 +1537,14 @@
         <article class="panel">
           <h2>학생별 파일 생성</h2>
           <div class="panel-body">
-            <div class="form-row">
-              <button class="primary" id="prepare-output-button" type="button">학생별 출력 데이터 만들기</button>
-              <button id="generate-sample-output-button" type="button">1명 테스트 생성</button>
-              <button id="generate-output-button" type="button">HWP 파일 생성</button>
+            <div class="form-row output-action-row">
+              <div class="output-primary-actions">
+                <button class="primary" id="prepare-output-button" type="button">1.학생별 출력 데이터 만들기</button>
+                <button class="primary" id="generate-output-button" type="button">2.HWP 파일 생성</button>
+              </div>
+              <div class="output-secondary-actions">
+                <button id="generate-sample-output-button" type="button">1명 테스트 생성</button>
+              </div>
             </div>
             <div class="muted action-status" id="output-status">성적 입력을 마치면 학생별 HWP 출력 준비 데이터를 만들 수 있습니다.</div>
           </div>
@@ -1190,10 +1574,14 @@
     let resultPaths = {};
     let schoolInfo = { grade: "", class_name: "", teacher_name: "" };
     let studentRoster = [];
+    let rosterDirty = false;
     let activeStep = "basic";
     let activeScoreSubject = "";
     let selectedStudentIndex = 0;
     let selectedSubject = "전체";
+    const scoreGridDrafts = new Map();
+    const DEFAULT_ROSTER_GRID_ROWS = 30;
+    const ROSTER_EMPTY_ROW_BATCH = 10;
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -1299,8 +1687,32 @@
       return rosterIssues(roster).length === 0;
     }
 
+    function rosterSaveRequired() {
+      return rosterDirty && rosterComplete() && studentRoster.length > 0;
+    }
+
     function basicInfoComplete() {
-      return schoolInfoComplete() && rosterComplete();
+      return schoolInfoComplete() && rosterComplete() && !rosterDirty;
+    }
+
+    function scoreGridSaveDisabled(subject = activeScoreSubject) {
+      return !phase1Data || !rosterComplete() || rosterDirty || !subject;
+    }
+
+    function scoreGridDraftKey(subject = activeScoreSubject) {
+      return subjectKey(subject || "");
+    }
+
+    function scoreGridDirty(subject = activeScoreSubject) {
+      return scoreGridDrafts.has(scoreGridDraftKey(subject));
+    }
+
+    function activeScoreGridDraft(subject = activeScoreSubject) {
+      return scoreGridDrafts.get(scoreGridDraftKey(subject)) || null;
+    }
+
+    function payloadIncludesRoster(payload) {
+      return Object.prototype.hasOwnProperty.call(payload || {}, "student_roster");
     }
 
     function rosterFromGrid() {
@@ -1311,30 +1723,90 @@
       })).filter((item) => item.number || item.name);
     }
 
-    function renderRoster(roster = studentRoster) {
-      const rows = normalizeStudentRoster(roster);
-      const visibleRows = rows.length ? rows : [{ number: "", name: "", source_row: 1 }];
-      $("roster-rows").innerHTML = visibleRows.map((student, index) => `
-        <tr>
-          <td><input type="text" inputmode="numeric" data-field="number" value="${escapeHtml(student.number)}" aria-label="학생 번호 ${index + 1}"></td>
-          <td><input type="text" data-field="name" value="${escapeHtml(student.name)}" aria-label="학생 이름 ${index + 1}"></td>
-          <td><button class="row-action" type="button" data-action="delete-roster-row" aria-label="학생 삭제">×</button></td>
-        </tr>
-      `).join("");
+    function updateRosterStatus(rows = normalizeStudentRoster(studentRoster)) {
       const issues = rosterIssues(rows);
       $("roster-status").innerHTML = issues.length
         ? `<span class="status-bad">${escapeHtml(issues[0])}</span>${issues.length > 1 ? ` <span class="muted">외 ${issues.length - 1}건</span>` : ""}`
-        : `<span class="status-ok">학생 ${rows.length}명 입력됨</span>`;
+        : `<span class="${rosterDirty ? "status-warn" : "status-ok"}">학생 ${rows.length}명 입력됨${rosterDirty ? ", 저장 필요" : ""}</span>`;
+      $("save-score-grid-button").disabled = scoreGridSaveDisabled();
+    }
+
+    function syncRosterFromGrid({ markDirty = true } = {}) {
+      studentRoster = normalizeStudentRoster(rosterFromGrid());
+      if (markDirty) {
+        rosterDirty = true;
+        scoreGridDrafts.clear();
+      }
+      syncSubjectGridWithRoster();
+      updateRosterStatus(studentRoster);
+      updateStepStatuses();
+    }
+
+    function syncSubjectGridWithRoster({ showRosterWarning = true } = {}) {
+      renderSubjectExcelInputs(phase1Data, phase2Data);
+      if (showRosterWarning && rosterDirty && phase1Data) {
+        $("excel-status").innerHTML = `<span class="status-warn">기본정보 명단 변경사항이 과목별 표에 반영되었습니다. 기본정보 전체 저장을 먼저 누르세요.</span>`;
+      }
+    }
+
+    function markRosterChanged(message) {
+      rosterDirty = true;
+      scoreGridDrafts.clear();
+      renderRoster(studentRoster);
+      syncSubjectGridWithRoster();
+      updateStepStatuses();
+      const statusMessage = message || "학생 명단이 변경되었습니다. 기본정보 전체 저장이 필요합니다.";
+      $("school-info-status").innerHTML = `<span class="status-warn">${escapeHtml(statusMessage)}</span>`;
+      $("excel-status").innerHTML = `<span class="status-warn">학생 명단 변경사항을 기본정보 전체 저장으로 먼저 저장하세요.</span>`;
+    }
+
+    function rosterGridRowHtml(student, index) {
+      const hasStudent = Boolean(student.number || student.name);
+      const deleteCell = hasStudent
+        ? `<button class="row-action" type="button" data-action="delete-roster-row" aria-label="${escapeHtml(student.name || student.number)} 삭제" title="학생 삭제">×</button>`
+        : `<span class="row-action-placeholder" aria-hidden="true"></span>`;
+      return `
+        <tr data-roster-index="${index}">
+          <td class="row-index">${index + 1}</td>
+          <td><input type="text" inputmode="numeric" data-field="number" value="${escapeHtml(student.number || "")}" placeholder="${index + 1}" aria-label="학생 번호 ${index + 1}"></td>
+          <td><input type="text" data-field="name" value="${escapeHtml(student.name || "")}" placeholder="학생 이름" aria-label="학생 이름 ${index + 1}"></td>
+          <td class="delete-col">${deleteCell}</td>
+        </tr>
+      `;
+    }
+
+    function renderRoster(roster = studentRoster) {
+      const rows = normalizeStudentRoster(roster);
+      const visibleCount = Math.max(DEFAULT_ROSTER_GRID_ROWS, rows.length + ROSTER_EMPTY_ROW_BATCH);
+      const visibleRows = Array.from({ length: visibleCount }, (_, index) => rows[index] || { number: "", name: "" });
+      $("roster-rows").innerHTML = visibleRows.map((student, index) => rosterGridRowHtml(student, index)).join("");
+      updateRosterStatus(rows);
+    }
+
+    function addRosterRows(count = 1) {
+      const startIndex = queryAll("#roster-rows tr").length;
+      const html = Array.from({ length: count }, (_, offset) => (
+        rosterGridRowHtml({ number: "", name: "" }, startIndex + offset)
+      )).join("");
+      $("roster-rows").insertAdjacentHTML("beforeend", html);
     }
 
     function addRosterRow(number = "", name = "") {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td><input type="text" inputmode="numeric" data-field="number" value="${escapeHtml(number)}" aria-label="학생 번호"></td>
-        <td><input type="text" data-field="name" value="${escapeHtml(name)}" aria-label="학생 이름"></td>
-        <td><button class="row-action" type="button" data-action="delete-roster-row" aria-label="학생 삭제">×</button></td>
-      `;
-      $("roster-rows").appendChild(row);
+      const index = queryAll("#roster-rows tr").length;
+      $("roster-rows").insertAdjacentHTML("beforeend", rosterGridRowHtml({ number, name }, index));
+    }
+
+    function ensureRosterRowCount(rowCount) {
+      const currentCount = queryAll("#roster-rows tr").length;
+      if (currentCount < rowCount) addRosterRows(rowCount - currentCount);
+    }
+
+    function deleteRosterRow(button) {
+      const row = button.closest("tr");
+      if (!row) return;
+      row.remove();
+      studentRoster = normalizeStudentRoster(rosterFromGrid());
+      markRosterChanged("학생 명단에서 삭제했습니다. 기본정보 전체 저장을 누르면 반영됩니다.");
     }
 
     function parseRosterPaste(text) {
@@ -1350,10 +1822,46 @@
           const cells = line.split(/\t|,/).map((cell) => cell.trim()).filter(Boolean);
           if (cells.length >= 2) return { number: cells[0], name: cells.slice(1).join(" "), source_row: index + 1 };
           const match = line.match(/^(\d+)\s+(.+)$/);
+          if (/^\d+$/.test(line)) return { number: line, name: "", source_row: index + 1 };
           return match
             ? { number: match[1], name: match[2].trim(), source_row: index + 1 }
             : { number: "", name: line, source_row: index + 1 };
         });
+    }
+
+    function applyRosterPasteToGrid(event) {
+      const input = event.target.closest('input[data-field]');
+      if (!input) return;
+      const text = event.clipboardData?.getData("text/plain") || "";
+      const looksLikeTable = /(\t|,|\r?\n|\\t|\\n)/.test(text);
+      if (!looksLikeTable) return;
+
+      const pastedRows = parseRosterPaste(text);
+      if (!pastedRows.length) return;
+      event.preventDefault();
+
+      const startRow = input.closest("tr");
+      const startIndex = Number(startRow?.dataset.rosterIndex || 0);
+      const startField = input.dataset.field;
+      ensureRosterRowCount(startIndex + pastedRows.length);
+
+      pastedRows.forEach((student, offset) => {
+        const row = queryAll("#roster-rows tr")[startIndex + offset];
+        if (!row) return;
+        const numberInput = row.querySelector('[data-field="number"]');
+        const nameInput = row.querySelector('[data-field="name"]');
+        if (startField === "name") {
+          nameInput.value = student.name || student.number || "";
+          return;
+        }
+        numberInput.value = student.number || "";
+        nameInput.value = student.name || "";
+      });
+
+      syncRosterFromGrid();
+      const nextRow = queryAll("#roster-rows tr")[startIndex + pastedRows.length];
+      const nextInput = nextRow?.querySelector(`[data-field="${startField}"]`) || input;
+      nextInput.focus();
     }
 
     function setActiveStep(step) {
@@ -1364,6 +1872,9 @@
       queryAll("[data-step-target]").forEach((button) => {
         button.classList.toggle("active", button.dataset.stepTarget === step);
       });
+      if (step === "excel") {
+        syncSubjectGridWithRoster();
+      }
     }
 
     function renderSchoolInfo(info) {
@@ -1378,13 +1889,20 @@
 
     function updateStepStatuses() {
       const rosterText = studentRoster.length ? `학생 ${studentRoster.length}명` : "명단 미입력";
-      setStepStatus("basic", basicInfoComplete() ? rosterText : `${schoolInfoText()} · ${rosterText}`, basicInfoComplete() ? "ok" : "alert");
+      const basicStatusText = basicInfoComplete()
+        ? rosterText
+        : `${schoolInfoText()} · ${rosterText}${rosterSaveRequired() ? " 저장 필요" : ""}`;
+      setStepStatus("basic", basicStatusText, basicInfoComplete() ? "ok" : "alert");
       setStepStatus("template", phase1Data ? `평가 ${phase1Data.block_count ?? 0}개` : "대기", phase1Data ? "ok" : "alert");
 
       if (!phase1Data) {
         setStepStatus("excel", "양식 필요", "alert");
       } else if (!rosterComplete()) {
         setStepStatus("excel", "명단 필요", "alert");
+      } else if (rosterDirty) {
+        setStepStatus("excel", "명단 저장 필요", "alert");
+      } else if (scoreGridDrafts.size) {
+        setStepStatus("excel", "성적 저장 필요", "alert");
       } else if (!phase2Data) {
         setStepStatus("excel", "미입력", "alert");
       } else {
@@ -1659,8 +2177,9 @@
       const tabContainer = $("subject-tab-list");
       if (!phase1) {
         tabContainer.innerHTML = "";
-        container.innerHTML = `<div class="muted">먼저 HWP 양식을 인식하면 교과별 엑셀 선택 칸이 자동으로 만들어집니다.</div>`;
+        container.innerHTML = `<div class="muted">먼저 HWP 양식을 인식하면 교과별 성적 입력 칸이 자동으로 만들어집니다.</div>`;
         $("score-grid").innerHTML = "";
+        $("score-entry-summary").textContent = "HWP 양식 인식 후 사용할 수 있습니다.";
         $("save-score-grid-button").disabled = true;
         return;
       }
@@ -1670,6 +2189,7 @@
         tabContainer.innerHTML = "";
         container.innerHTML = `<div class="status-bad">HWP 양식에서 교과를 찾지 못했습니다.</div>`;
         $("score-grid").innerHTML = "";
+        $("score-entry-summary").textContent = "인식된 교과가 없습니다.";
         $("save-score-grid-button").disabled = true;
         return;
       }
@@ -1680,9 +2200,12 @@
 
       tabContainer.innerHTML = subjects.map((subject) => {
         const state = subjectCardState(subject, phase1, phase2);
+        const dirty = scoreGridDirty(subject);
+        const cardClass = dirty ? "warn" : state.cardClass;
+        const statusText = dirty ? "저장 필요" : state.statusText;
         return `
-          <button class="subject-tab ${subjectKey(subject) === subjectKey(activeScoreSubject) ? "active" : ""} ${state.cardClass}" type="button" data-action="select-subject-tab" data-subject="${escapeHtml(subject)}">
-            ${escapeHtml(subject)} · ${escapeHtml(state.statusText)}
+          <button class="subject-tab ${subjectKey(subject) === subjectKey(activeScoreSubject) ? "active" : ""} ${cardClass}" type="button" data-action="select-subject-tab" data-subject="${escapeHtml(subject)}">
+            ${escapeHtml(subject)} · ${escapeHtml(statusText)}
           </button>
         `;
       }).join("");
@@ -1690,11 +2213,15 @@
       const subject = activeScoreSubject;
       const inputId = subjectUploadId(subject);
       const state = subjectCardState(subject, phase1, phase2);
+      const dirty = scoreGridDirty(subject);
+      const cardClass = dirty ? "warn" : state.cardClass;
+      const statusClass = dirty ? "status-warn" : state.statusClass;
+      const statusText = dirty ? "저장 필요" : state.statusText;
       const details = state.details.length
         ? `<div class="subject-upload-detail">${state.details.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}</div>`
         : "";
       container.innerHTML = `
-          <section class="subject-upload-card ${state.cardClass}" data-subject="${escapeHtml(subject)}">
+          <section class="subject-upload-card ${cardClass}" data-subject="${escapeHtml(subject)}">
             <div class="subject-upload-head">
               <div class="subject-upload-title">${escapeHtml(subject)}</div>
               <div class="muted">${state.blockCount}개 평가</div>
@@ -1705,12 +2232,12 @@
               <span class="muted file-name" data-role="file-name">선택된 파일 없음</span>
               <button class="primary" type="button" data-action="import-subject" data-subject="${escapeHtml(subject)}">${escapeHtml(subject)} 반영</button>
             </div>
-            <div class="subject-upload-status" data-role="subject-status"><span class="${state.statusClass}">${escapeHtml(state.statusText)}</span></div>
+            <div class="subject-upload-status" data-role="subject-status"><span class="${statusClass}">${escapeHtml(statusText)}</span></div>
             ${details}
           </section>
       `;
       renderScoreGrid(subject);
-      $("save-score-grid-button").disabled = !phase1Data || !rosterComplete() || !subject;
+      $("save-score-grid-button").disabled = scoreGridSaveDisabled(subject);
     }
 
     function phase2StudentLookup() {
@@ -1737,54 +2264,107 @@
       return "";
     }
 
+    function normalizeScoreCellValue(value) {
+      const raw = String(value || "").trim();
+      const compact = raw.replace(/\s+/g, "");
+      if (!compact) return "";
+      if (compact === "상" || compact === "도달") return "상";
+      if (compact === "중" || compact === "부분도달") return "중";
+      if (compact === "하" || compact === "노력중") return "하";
+      return raw;
+    }
+
+    function scoreValueIsValid(value) {
+      const normalized = normalizeScoreCellValue(value);
+      return !normalized || ["상", "중", "하"].includes(normalized);
+    }
+
     function normalizedScoreValue(rawValue, level) {
-      const raw = String(rawValue || "").trim();
+      const raw = normalizeScoreCellValue(rawValue);
       if (["상", "중", "하"].includes(raw)) return raw;
       return rawValueForLevel(level);
+    }
+
+    function parseScorePaste(text) {
+      const normalizedText = String(text || "")
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
+      const lines = normalizedText.split(/\r?\n/);
+      while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+      return lines.map((line) => line.split(/\t|,/).map(normalizeScoreCellValue));
+    }
+
+    function draftValuesByStudent(subject) {
+      const draft = activeScoreGridDraft(subject);
+      const lookup = new Map();
+      for (const row of draft?.rows || []) {
+        const key = studentKey(row);
+        if (key) lookup.set(key, row.values || {});
+      }
+      return lookup;
+    }
+
+    function scoreInputHtml(student, block, blockIndex, value, rowIndex) {
+      const normalized = normalizeScoreCellValue(value);
+      const valid = scoreValueIsValid(normalized);
+      const isPasteStart = rowIndex === 0 && blockIndex === 0;
+      return `
+        <input
+          type="text"
+          class="score-cell ${valid ? "" : "score-invalid"}${isPasteStart ? " paste-start" : ""}"
+          data-score-block="${escapeHtml(block.index)}"
+          data-score-col-index="${blockIndex}"
+          value="${escapeHtml(normalized)}"
+          placeholder="${isPasteStart ? "붙여넣기" : "상/중/하"}"
+          aria-label="${escapeHtml(student.name)} ${escapeHtml(block.evaluation_element)}"
+        >
+      `;
     }
 
     function renderScoreGrid(subject) {
       const blocks = phase1BlocksForSubject(subject);
       const roster = normalizeStudentRoster(studentRoster);
+      $("score-entry-summary").textContent = subject
+        ? `${subject} · 학생 ${roster.length}명 · 평가 ${blocks.length}개`
+        : "과목을 선택하세요.";
       if (!phase1Data) {
         $("score-grid").innerHTML = "";
         return;
       }
       if (!roster.length) {
-        $("score-grid").innerHTML = `<div class="muted" style="padding: 12px;">기본정보에서 학생 명단을 먼저 저장하세요.</div>`;
+        $("score-grid").innerHTML = `<div class="muted score-grid-message">기본정보에서 학생 명단을 먼저 저장하세요.</div>`;
         return;
       }
       if (!blocks.length) {
-        $("score-grid").innerHTML = `<div class="status-bad" style="padding: 12px;">선택한 과목의 평가 항목이 없습니다.</div>`;
+        $("score-grid").innerHTML = `<div class="status-bad score-grid-message">선택한 과목의 평가 항목이 없습니다.</div>`;
         return;
       }
 
       const studentLookup = phase2StudentLookup();
+      const draftLookup = draftValuesByStudent(subject);
       const headerCells = blocks.map((block) => `
         <th title="${escapeHtml(block.evaluation_element)}">
           ${escapeHtml(block.area)}<br>
           <span class="muted">${escapeHtml(block.evaluation_element)}</span>
         </th>
       `).join("");
-      const bodyRows = roster.map((student) => {
+      const bodyRows = roster.map((student, index) => {
         const savedStudent = studentLookup.get(studentKey(student));
         const assessmentLookup = assessmentLookupForStudent(savedStudent);
-        const scoreCells = blocks.map((block) => {
+        const draftValues = draftLookup.get(studentKey(student)) || null;
+        const scoreCells = blocks.map((block, blockIndex) => {
           const assessment = assessmentLookup.get(String(block.index));
-          const value = normalizedScoreValue(assessment?.raw_value, assessment?.level);
+          const draftKey = String(block.index);
+          const hasDraftValue = draftValues && Object.prototype.hasOwnProperty.call(draftValues, draftKey);
+          const value = hasDraftValue ? draftValues[draftKey] : normalizedScoreValue(assessment?.raw_value, assessment?.level);
           return `
-            <td>
-              <select data-score-block="${escapeHtml(block.index)}" aria-label="${escapeHtml(student.name)} ${escapeHtml(block.evaluation_element)}">
-                <option value="" ${value ? "" : "selected"}></option>
-                <option value="상" ${value === "상" ? "selected" : ""}>상</option>
-                <option value="중" ${value === "중" ? "selected" : ""}>중</option>
-                <option value="하" ${value === "하" ? "selected" : ""}>하</option>
-              </select>
-            </td>
+            <td>${scoreInputHtml(student, block, blockIndex, value, index)}</td>
           `;
         }).join("");
         return `
-          <tr data-score-student="${escapeHtml(studentKey(student))}" data-number="${escapeHtml(student.number)}" data-name="${escapeHtml(student.name)}">
+          <tr data-score-student="${escapeHtml(studentKey(student))}" data-score-row-index="${escapeHtml(index)}" data-number="${escapeHtml(student.number)}" data-name="${escapeHtml(student.name)}">
+            <td class="row-index">${index + 1}</td>
             <td class="student-col">${escapeHtml(student.number)}</td>
             <td class="name-col">${escapeHtml(student.name)}</td>
             ${scoreCells}
@@ -1796,6 +2376,7 @@
         <table>
           <thead>
             <tr>
+              <th class="row-index">#</th>
               <th class="student-col">번호</th>
               <th class="name-col">이름</th>
               ${headerCells}
@@ -1809,8 +2390,8 @@
     function scoreGridRows() {
       return queryAll("#score-grid tbody tr").map((row, index) => {
         const values = {};
-        row.querySelectorAll("select[data-score-block]").forEach((select) => {
-          values[select.dataset.scoreBlock] = select.value;
+        row.querySelectorAll("input[data-score-block]").forEach((input) => {
+          values[input.dataset.scoreBlock] = normalizeScoreCellValue(input.value);
         });
         return {
           number: row.dataset.number || "",
@@ -1819,6 +2400,75 @@
           values,
         };
       });
+    }
+
+    function scoreGridInvalidInputs() {
+      return queryAll("#score-grid input.score-invalid");
+    }
+
+    function updateScoreGridDirtyStatus() {
+      $("save-score-grid-button").disabled = scoreGridSaveDisabled();
+      const statusEl = document.querySelector("#subject-excel-list [data-role='subject-status']");
+      if (statusEl && scoreGridDirty()) {
+        statusEl.innerHTML = `<span class="status-warn">저장 필요</span>`;
+      }
+      queryAll('#subject-tab-list button[data-subject]').forEach((button) => {
+        const dirty = scoreGridDirty(button.dataset.subject);
+        button.classList.toggle("warn", dirty);
+        if (dirty) button.textContent = `${button.dataset.subject} · 저장 필요`;
+      });
+      if (scoreGridDirty()) {
+        $("excel-status").innerHTML = `<span class="status-warn">${escapeHtml(activeScoreSubject)} 입력값 저장 필요</span>`;
+      }
+    }
+
+    function syncScoreGridDraft() {
+      if (!activeScoreSubject) return;
+      scoreGridDrafts.set(scoreGridDraftKey(activeScoreSubject), {
+        subject: activeScoreSubject,
+        rows: scoreGridRows(),
+      });
+      updateScoreGridDirtyStatus();
+    }
+
+    function normalizeScoreInput(input) {
+      const normalized = normalizeScoreCellValue(input.value);
+      input.value = normalized;
+      input.classList.toggle("score-invalid", !scoreValueIsValid(normalized));
+    }
+
+    function applyScorePasteToGrid(event) {
+      const input = event.target.closest('input[data-score-block]');
+      if (!input) return;
+      const text = event.clipboardData?.getData("text/plain") || "";
+      const looksLikeTable = /(\t|,|\r?\n|\\t|\\n)/.test(text);
+      if (!looksLikeTable) return;
+
+      const pastedRows = parseScorePaste(text);
+      if (!pastedRows.length) return;
+      event.preventDefault();
+
+      const startRow = Number(input.closest("tr")?.dataset.scoreRowIndex || 0);
+      const startCol = Number(input.dataset.scoreColIndex || 0);
+      const rows = queryAll("#score-grid tbody tr");
+      pastedRows.forEach((cells, rowOffset) => {
+        const row = rows[startRow + rowOffset];
+        if (!row) return;
+        cells.forEach((cellValue, colOffset) => {
+          const target = row.querySelector(`input[data-score-col-index="${startCol + colOffset}"]`);
+          if (!target) return;
+          target.value = normalizeScoreCellValue(cellValue);
+          normalizeScoreInput(target);
+        });
+      });
+      syncScoreGridDraft();
+    }
+
+    function moveScoreFocus(input, rowDelta, colDelta) {
+      const rowIndex = Number(input.closest("tr")?.dataset.scoreRowIndex || 0);
+      const colIndex = Number(input.dataset.scoreColIndex || 0);
+      const target = document.querySelector(`#score-grid tr[data-score-row-index="${rowIndex + rowDelta}"] input[data-score-col-index="${colIndex + colDelta}"]`);
+      if (target) target.focus();
     }
 
     function renderBlocks(phase1) {
@@ -2092,7 +2742,13 @@
       phase3Data = payload.phase3 || null;
       resultPaths = payload.paths || {};
       schoolInfo = normalizeSchoolInfo(payload.school_info);
-      studentRoster = normalizeStudentRoster(payload.student_roster || []);
+      const payloadRoster = payloadIncludesRoster(payload) ? normalizeStudentRoster(payload.student_roster || []) : [];
+      const localRoster = normalizeStudentRoster(rosterFromGrid());
+      const keepLocalRoster = !payloadIncludesRoster(payload)
+        ? (localRoster.length > 0 || studentRoster.length > 0)
+        : (rosterDirty && localRoster.length > 0 && payloadRoster.length === 0);
+      studentRoster = keepLocalRoster ? (localRoster.length ? localRoster : studentRoster) : payloadRoster;
+      if (!keepLocalRoster) rosterDirty = false;
       selectedStudentIndex = 0;
       selectedSubject = "전체";
       if (!activeScoreSubject && phase1Data) {
@@ -2106,7 +2762,7 @@
       $("metric-students").textContent = phase2Data?.student_count ?? (studentRoster.length || "-");
       $("metric-issues").textContent = phase2Data ? (phase2Data.issues || []).length : "-";
       $("reset-scores-button").disabled = !phase1Data || !phase2Data;
-      $("save-score-grid-button").disabled = !phase1Data || !rosterComplete() || !activeScoreSubject;
+      $("save-score-grid-button").disabled = scoreGridSaveDisabled();
       $("prepare-output-button").disabled = !phase2Data;
       $("generate-sample-output-button").disabled = !phase3Data?.ready;
       $("generate-output-button").disabled = !phase3Data?.ready;
@@ -2164,6 +2820,10 @@
         });
         const payload = await response.json();
         if (!payload.ok) throw new Error(payload.error || "기본 정보 저장 실패");
+        if (!payloadIncludesRoster(payload)) {
+          payload.student_roster = nextRoster;
+        }
+        rosterDirty = false;
         renderAll(payload);
         $("school-info-status").innerHTML = `<span class="status-ok">저장됨: ${escapeHtml(schoolInfoText(payload.school_info))}</span>`;
         setActiveStep("template");
@@ -2194,7 +2854,7 @@
         $("template-status").innerHTML = `<span class="status-ok">양식 인식 완료: 평가 항목 ${payload.phase1?.block_count ?? 0}개</span>`;
         $("excel-status").innerHTML = payload.phase2
           ? `<span class="status-ok">같은 평가 항목의 HWP로 확인되어 기존 성적 입력을 보존했습니다.</span>`
-          : "교과별 칸에 성적표 엑셀 파일을 넣으세요.";
+          : "교과별 성적을 입력하거나 하단에서 성적표 엑셀 파일을 불러오세요.";
         setActiveStep("excel");
       } catch (error) {
         $("template-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
@@ -2234,6 +2894,12 @@
         showErrorPopup("학생 명단 확인 필요", rosterIssues().join("\n"));
         return;
       }
+      if (rosterDirty) {
+        $("excel-status").innerHTML = `<span class="status-bad">학생 명단을 저장한 뒤 엑셀을 불러오세요.</span>`;
+        showErrorPopup("학생 명단 저장 필요", "학생 명단 입력표에 변경사항이 있습니다. 기본 정보 저장 버튼을 먼저 누른 뒤 엑셀을 불러오세요.");
+        setActiveStep("basic");
+        return;
+      }
       const input = subjectFileInput(subject);
       const card = input?.closest(".subject-upload-card");
       const statusEl = card?.querySelector('[data-role="subject-status"]');
@@ -2256,6 +2922,7 @@
           const response = await fetch(`/api/import-excel?subject=${encodeURIComponent(subject)}`, { method: "POST", body: formData });
           payload = await response.json();
           if (!payload.ok) throw new Error(payload.error || `${file.name} 불러오기 실패`);
+          scoreGridDrafts.delete(scoreGridDraftKey(subject));
           renderAll(payload);
         }
         const errorCount = payload.phase2?.error_count ?? 0;
@@ -2286,8 +2953,19 @@
         showErrorPopup("학생 명단 확인 필요", rosterIssues().join("\n"));
         return;
       }
+      if (rosterDirty) {
+        showErrorPopup("학생 명단 저장 필요", "학생 명단 입력표에 변경사항이 있습니다. 기본 정보 저장 버튼을 먼저 누른 뒤 성적 그리드를 저장하세요.");
+        setActiveStep("basic");
+        return;
+      }
       if (!activeScoreSubject) {
         showErrorPopup("과목 선택 필요", "저장할 과목을 먼저 선택하세요.");
+        return;
+      }
+      const invalidInputs = scoreGridInvalidInputs();
+      if (invalidInputs.length) {
+        invalidInputs[0].focus();
+        showErrorPopup("성적 입력 확인 필요", "성적 입력표에는 상, 중, 하 또는 빈칸만 입력하세요.");
         return;
       }
 
@@ -2304,6 +2982,7 @@
         });
         const payload = await response.json();
         if (!payload.ok) throw new Error(payload.error || "그리드 저장 실패");
+        scoreGridDrafts.delete(scoreGridDraftKey(activeScoreSubject));
         renderAll(payload);
         const errorCount = payload.phase2?.error_count ?? 0;
         const warningCount = payload.phase2?.warning_count ?? 0;
@@ -2314,7 +2993,7 @@
         $("excel-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
         showErrorPopup("그리드 저장 실패", error.message);
       } finally {
-        $("save-score-grid-button").disabled = !phase1Data || !rosterComplete() || !activeScoreSubject;
+        $("save-score-grid-button").disabled = scoreGridSaveDisabled();
       }
     }
 
@@ -2332,8 +3011,9 @@
         const response = await fetch("/api/reset-scores", { method: "POST" });
         const payload = await response.json();
         if (!payload.ok) throw new Error(payload.error || "성적 입력 초기화 실패");
+        scoreGridDrafts.clear();
         renderAll(payload);
-        $("excel-status").innerHTML = `<span class="status-ok">성적 입력을 초기화했습니다. 과목별 엑셀을 다시 넣으세요.</span>`;
+        $("excel-status").innerHTML = `<span class="status-ok">성적 입력을 초기화했습니다. 과목별 성적을 다시 입력하세요.</span>`;
       } catch (error) {
         $("excel-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
         showErrorPopup("성적 입력 초기화 실패", error.message);
@@ -2343,6 +3023,11 @@
     }
 
     async function prepareOutputData() {
+      if (scoreGridDrafts.size) {
+        showErrorPopup("성적 저장 필요", "과목별 성적 입력표에 저장하지 않은 내용이 있습니다. 현재 과목 그리드 저장 버튼을 먼저 누르세요.");
+        setActiveStep("excel");
+        return;
+      }
       $("prepare-output-button").disabled = true;
       $("output-status").textContent = "학생별 출력 데이터를 만드는 중입니다.";
       try {
@@ -2369,6 +3054,11 @@
     }
 
     async function generateHwpReports(limit = 0) {
+      if (scoreGridDrafts.size) {
+        showErrorPopup("성적 저장 필요", "과목별 성적 입력표에 저장하지 않은 내용이 있습니다. 성적을 먼저 저장한 뒤 HWP를 생성하세요.");
+        setActiveStep("excel");
+        return;
+      }
       const isSample = limit === 1;
       $("generate-sample-output-button").disabled = true;
       $("generate-output-button").disabled = true;
@@ -2402,6 +3092,8 @@
         subjectsFromPhase1,
         normalizeStudentRoster,
         parseRosterPaste,
+        normalizeScoreCellValue,
+        parseScorePaste,
       };
     }
 
@@ -2411,16 +3103,7 @@
     $("reload-button").addEventListener("click", loadAll);
     $("save-school-info-button").addEventListener("click", saveSchoolInfo);
     $("add-roster-row-button").addEventListener("click", () => addRosterRow());
-    $("paste-roster-button").addEventListener("click", () => {
-      const parsed = parseRosterPaste($("roster-paste-input").value);
-      if (!parsed.length) {
-        showErrorPopup("명단 붙여넣기 필요", "번호와 이름이 들어있는 명단을 붙여넣으세요.");
-        return;
-      }
-      studentRoster = normalizeStudentRoster(parsed);
-      renderRoster(studentRoster);
-      $("roster-paste-input").value = "";
-    });
+    $("add-roster-batch-button").addEventListener("click", () => addRosterRows(ROSTER_EMPTY_ROW_BATCH));
     $("recognize-button").addEventListener("click", recognizeTemplate);
     $("reset-scores-button").addEventListener("click", resetScores);
     $("save-score-grid-button").addEventListener("click", saveScoreGrid);
@@ -2451,23 +3134,33 @@
       activeScoreSubject = button.dataset.subject;
       renderSubjectExcelInputs(phase1Data, phase2Data);
     });
-    $("roster-rows").addEventListener("input", () => {
-      studentRoster = normalizeStudentRoster(rosterFromGrid());
-      const issues = rosterIssues(studentRoster);
-      $("roster-status").innerHTML = issues.length
-        ? `<span class="status-bad">${escapeHtml(issues[0])}</span>`
-        : `<span class="status-ok">학생 ${studentRoster.length}명 입력됨</span>`;
-      updateStepStatuses();
-    });
     $("roster-rows").addEventListener("click", (event) => {
       const button = event.target.closest('button[data-action="delete-roster-row"]');
       if (!button) return;
-      const row = button.closest("tr");
-      if (row) row.remove();
-      studentRoster = normalizeStudentRoster(rosterFromGrid());
-      if (!queryAll("#roster-rows tr").length) addRosterRow();
-      renderRoster(studentRoster);
-      updateStepStatuses();
+      deleteRosterRow(button);
+    });
+    $("roster-rows").addEventListener("input", syncRosterFromGrid);
+    $("roster-rows").addEventListener("paste", applyRosterPasteToGrid);
+    $("score-grid").addEventListener("input", (event) => {
+      const input = event.target.closest('input[data-score-block]');
+      if (!input) return;
+      input.classList.toggle("score-invalid", !scoreValueIsValid(input.value));
+      syncScoreGridDraft();
+    });
+    $("score-grid").addEventListener("focusout", (event) => {
+      const input = event.target.closest('input[data-score-block]');
+      if (!input) return;
+      normalizeScoreInput(input);
+      syncScoreGridDraft();
+    });
+    $("score-grid").addEventListener("paste", applyScorePasteToGrid);
+    $("score-grid").addEventListener("keydown", (event) => {
+      const input = event.target.closest('input[data-score-block]');
+      if (!input || event.key !== "Enter") return;
+      event.preventDefault();
+      normalizeScoreInput(input);
+      syncScoreGridDraft();
+      moveScoreFocus(input, event.shiftKey ? -1 : 1, 0);
     });
     $("student-list-rows").addEventListener("click", (event) => {
       const row = event.target.closest("tr[data-student-index]");
