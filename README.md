@@ -59,6 +59,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_local.ps1
 
 생성된 `dist\hwp-alimi-local-날짜시간` 폴더 안의 `HwpAlimi.exe`를 실행하면 됩니다.
 `index.html`을 직접 열면 로컬 서버가 없어서 결과를 불러올 수 없습니다.
+같은 패키지 폴더에서 다시 실행하면 이전 작업 상태를 이어서 보여줍니다.
+다른 폴더의 예전 서버가 이미 실행 중이면 새 포트로 현재 패키지 서버를 따로 엽니다.
 
 ## 검증 정책
 

@@ -1785,6 +1785,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path == "/api/results":
             self.send_json({"ok": True, **get_results()})
             return
+        if path == "/api/app-info":
+            self.send_json({"ok": True, "app_root": str(PROJECT_ROOT)})
+            return
         super().do_GET()
 
     def do_POST(self) -> None:

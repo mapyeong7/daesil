@@ -245,9 +245,15 @@ class IndexHtmlTest(unittest.TestCase):
         self.assertIn(".StartsWith($env:WINDIR", start_script)
         self.assertIn("Quote-Argument", start_script)
         self.assertIn("$serverArgumentLine", start_script)
+        self.assertIn("Find-LaunchTarget", start_script)
+        self.assertIn("Get-ExistingAppRoot", start_script)
+        self.assertIn("/api/app-info", start_script)
+        self.assertIn("Test-SamePath", start_script)
+        self.assertIn("기본 포트", start_script)
         self.assertIn("Wait-ServerReady", start_script)
         self.assertIn("System.Net.Sockets.TcpClient", start_script)
         self.assertIn("BeginConnect", start_script)
+        self.assertIn("$launchTarget.UseExisting", start_script)
         self.assertIn("if (-not (Wait-ServerReady", start_script)
         self.assertLess(start_script.index("if (-not (Wait-ServerReady"), start_script.rindex("Start-Process $serverUrl"))
         self.assertIn("scripts", launcher_source)
@@ -255,3 +261,9 @@ class IndexHtmlTest(unittest.TestCase):
         self.assertIn("powershell.exe", launcher_source)
         self.assertIn("HwpAlimi.exe 실행파일로 시작", html)
         self.assertIn("로컬 서버에 연결하지 못했습니다", html)
+
+    def test_local_server_exposes_app_root_for_launcher(self):
+        server_source = (PROJECT_ROOT / "src" / "hwp_alimi" / "local_server.py").read_text(encoding="utf-8")
+
+        self.assertIn('if path == "/api/app-info":', server_source)
+        self.assertIn('"app_root": str(PROJECT_ROOT)', server_source)
