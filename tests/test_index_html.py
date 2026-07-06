@@ -67,6 +67,9 @@ class IndexHtmlTest(unittest.TestCase):
 
             assert(hooks.subjectKey("즐거운 생활") === hooks.subjectKey("즐거운생활"), "spacing should be ignored");
             assert(hooks.subjectKey("바른·생활") === hooks.subjectKey("바른생활"), "middle dots should be ignored");
+            const pastedRoster = hooks.parseRosterPaste("2\\t이대실\\n1\\t김대실");
+            const normalizedRoster = hooks.normalizeStudentRoster(pastedRoster);
+            assert(normalizedRoster[0].number === "1" && normalizedRoster[0].name === "김대실", "roster paste should parse and sort by number");
             assert(hooks.subjectValueMatches("즐거운 생활", "즐거운생활"), "subject value should match spacing variants");
             assert(
               hooks.issueMatchesSubject(

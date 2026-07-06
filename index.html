@@ -407,6 +407,106 @@
       overflow-wrap: anywhere;
     }
 
+    .roster-toolbar,
+    .score-toolbar,
+    .subject-tabs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .roster-table input,
+    .score-grid select {
+      width: 100%;
+      border: 1px solid #b8c2cf;
+      border-radius: 6px;
+      padding: 7px 8px;
+      font: inherit;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .row-action {
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      padding: 0;
+      text-align: center;
+    }
+
+    .subject-tabs {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .subject-tab {
+      border-left-width: 4px;
+      min-height: 38px;
+    }
+
+    .subject-tab.active {
+      border-color: var(--accent);
+      background: #e9f1ff;
+      color: #0b4ea2;
+      font-weight: 700;
+    }
+
+    .subject-tab.ok {
+      border-left-color: var(--ok);
+    }
+
+    .subject-tab.warn {
+      border-left-color: var(--warn);
+    }
+
+    .subject-tab.error {
+      border-left-color: var(--bad);
+    }
+
+    .score-grid {
+      max-height: 560px;
+    }
+
+    .score-grid table {
+      min-width: 860px;
+    }
+
+    .score-grid th,
+    .score-grid td {
+      min-width: 110px;
+    }
+
+    .score-grid .student-col {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #eef2f6;
+      min-width: 76px;
+      width: 76px;
+    }
+
+    .score-grid td.student-col {
+      background: #ffffff;
+      z-index: 1;
+    }
+
+    .score-grid .name-col {
+      position: sticky;
+      left: 76px;
+      z-index: 2;
+      background: #eef2f6;
+      min-width: 116px;
+      width: 116px;
+    }
+
+    .score-grid td.name-col {
+      background: #ffffff;
+      z-index: 1;
+      font-weight: 700;
+    }
+
     .notice-overlay {
       position: fixed;
       inset: 0;
@@ -889,6 +989,31 @@
             <div class="muted action-status" id="school-info-status">학년, 반, 교사 이름을 입력하세요.</div>
           </div>
         </article>
+
+        <article class="panel" style="margin-top: 14px;">
+          <h2>학생 명단</h2>
+          <div class="panel-body">
+            <div class="roster-toolbar">
+              <button type="button" id="add-roster-row-button">학생 추가</button>
+              <button type="button" id="paste-roster-button">붙여넣기 반영</button>
+              <span class="muted">엑셀에서 번호와 이름 두 열을 복사해 아래 칸에 붙여넣을 수 있습니다.</span>
+            </div>
+            <textarea id="roster-paste-input" rows="3" placeholder="예:&#10;1	김대실&#10;2	이대실" style="width: 100%; border: 1px solid #b8c2cf; border-radius: 6px; padding: 9px 10px; font: inherit; resize: vertical;"></textarea>
+            <div class="scroll" style="margin-top: 10px; max-height: 360px;">
+              <table class="roster-table">
+                <thead>
+                  <tr>
+                    <th style="width: 90px;">번호</th>
+                    <th>이름</th>
+                    <th style="width: 54px;">삭제</th>
+                  </tr>
+                </thead>
+                <tbody id="roster-rows"></tbody>
+              </table>
+            </div>
+            <div class="muted action-status" id="roster-status">학생 번호와 이름을 입력하세요.</div>
+          </div>
+        </article>
       </section>
 
       <section class="step-panel" data-step-panel="template">
@@ -944,7 +1069,13 @@
         <article class="panel">
           <h2>교과별 성적표 입력</h2>
           <div class="panel-body">
-            <div id="subject-excel-list" class="subject-upload-grid"></div>
+            <div id="subject-tab-list" class="subject-tabs"></div>
+            <div id="subject-excel-list"></div>
+            <div class="score-toolbar" style="margin-top: 12px;">
+              <button class="primary" id="save-score-grid-button" type="button">현재 과목 그리드 저장</button>
+              <span class="muted">빈칸은 출력 시 아무것도 표시하지 않습니다.</span>
+            </div>
+            <div class="scroll score-grid" id="score-grid"></div>
             <div class="muted action-status" id="excel-status">양식 인식 후 과목별 NEIS 엑셀 파일을 불러오세요.</div>
           </div>
         </article>
@@ -1058,7 +1189,9 @@
     let phase3Data = null;
     let resultPaths = {};
     let schoolInfo = { grade: "", class_name: "", teacher_name: "" };
+    let studentRoster = [];
     let activeStep = "basic";
+    let activeScoreSubject = "";
     let selectedStudentIndex = 0;
     let selectedSubject = "전체";
 
@@ -1112,6 +1245,117 @@
       return `${normalized.grade}학년 ${normalized.class_name}반 · ${normalized.teacher_name}`;
     }
 
+    function compactStudentName(name) {
+      return String(name || "").replace(/\s+/g, "").trim();
+    }
+
+    function studentKey(student) {
+      const number = String(student?.number || "").trim();
+      const name = String(student?.name || "").trim();
+      return number || (name ? `name:${compactStudentName(name)}` : "");
+    }
+
+    function normalizeStudentRoster(roster) {
+      if (!Array.isArray(roster)) return [];
+      return roster
+        .map((item, index) => ({
+          number: String(item?.number || "").trim(),
+          name: String(item?.name || "").trim(),
+          source_row: item?.source_row || index + 1,
+        }))
+        .filter((item) => item.number || item.name)
+        .sort((a, b) => {
+          const left = Number(a.number);
+          const right = Number(b.number);
+          if (Number.isFinite(left) && Number.isFinite(right) && left !== right) return left - right;
+          return String(a.number || a.name).localeCompare(String(b.number || b.name), "ko");
+        });
+    }
+
+    function rosterIssues(roster = studentRoster) {
+      const normalized = normalizeStudentRoster(roster);
+      const issues = [];
+      const numbers = new Set();
+      const names = new Set();
+      if (!normalized.length) issues.push("학생 명단을 1명 이상 입력하세요.");
+      normalized.forEach((student, index) => {
+        if (!student.number || !student.name) {
+          issues.push(`${index + 1}행 번호와 이름을 모두 입력하세요.`);
+        }
+        if (student.number && numbers.has(student.number)) {
+          issues.push(`${student.number}번이 중복되었습니다.`);
+        }
+        const nameKey = compactStudentName(student.name);
+        if (nameKey && names.has(nameKey)) {
+          issues.push(`${student.name} 이름이 중복되었습니다.`);
+        }
+        if (student.number) numbers.add(student.number);
+        if (nameKey) names.add(nameKey);
+      });
+      return issues;
+    }
+
+    function rosterComplete(roster = studentRoster) {
+      return rosterIssues(roster).length === 0;
+    }
+
+    function basicInfoComplete() {
+      return schoolInfoComplete() && rosterComplete();
+    }
+
+    function rosterFromGrid() {
+      return queryAll("#roster-rows tr").map((row, index) => ({
+        number: row.querySelector('[data-field="number"]')?.value.trim() || "",
+        name: row.querySelector('[data-field="name"]')?.value.trim() || "",
+        source_row: index + 1,
+      })).filter((item) => item.number || item.name);
+    }
+
+    function renderRoster(roster = studentRoster) {
+      const rows = normalizeStudentRoster(roster);
+      const visibleRows = rows.length ? rows : [{ number: "", name: "", source_row: 1 }];
+      $("roster-rows").innerHTML = visibleRows.map((student, index) => `
+        <tr>
+          <td><input type="text" inputmode="numeric" data-field="number" value="${escapeHtml(student.number)}" aria-label="학생 번호 ${index + 1}"></td>
+          <td><input type="text" data-field="name" value="${escapeHtml(student.name)}" aria-label="학생 이름 ${index + 1}"></td>
+          <td><button class="row-action" type="button" data-action="delete-roster-row" aria-label="학생 삭제">×</button></td>
+        </tr>
+      `).join("");
+      const issues = rosterIssues(rows);
+      $("roster-status").innerHTML = issues.length
+        ? `<span class="status-bad">${escapeHtml(issues[0])}</span>${issues.length > 1 ? ` <span class="muted">외 ${issues.length - 1}건</span>` : ""}`
+        : `<span class="status-ok">학생 ${rows.length}명 입력됨</span>`;
+    }
+
+    function addRosterRow(number = "", name = "") {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><input type="text" inputmode="numeric" data-field="number" value="${escapeHtml(number)}" aria-label="학생 번호"></td>
+        <td><input type="text" data-field="name" value="${escapeHtml(name)}" aria-label="학생 이름"></td>
+        <td><button class="row-action" type="button" data-action="delete-roster-row" aria-label="학생 삭제">×</button></td>
+      `;
+      $("roster-rows").appendChild(row);
+    }
+
+    function parseRosterPaste(text) {
+      const normalizedText = String(text || "")
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
+      return normalizedText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line, index) => {
+          const cells = line.split(/\t|,/).map((cell) => cell.trim()).filter(Boolean);
+          if (cells.length >= 2) return { number: cells[0], name: cells.slice(1).join(" "), source_row: index + 1 };
+          const match = line.match(/^(\d+)\s+(.+)$/);
+          return match
+            ? { number: match[1], name: match[2].trim(), source_row: index + 1 }
+            : { number: "", name: line, source_row: index + 1 };
+        });
+    }
+
     function setActiveStep(step) {
       activeStep = step;
       queryAll("[data-step-panel]").forEach((panel) => {
@@ -1133,11 +1377,14 @@
     }
 
     function updateStepStatuses() {
-      setStepStatus("basic", schoolInfoText(), schoolInfoComplete() ? "ok" : "alert");
+      const rosterText = studentRoster.length ? `학생 ${studentRoster.length}명` : "명단 미입력";
+      setStepStatus("basic", basicInfoComplete() ? rosterText : `${schoolInfoText()} · ${rosterText}`, basicInfoComplete() ? "ok" : "alert");
       setStepStatus("template", phase1Data ? `평가 ${phase1Data.block_count ?? 0}개` : "대기", phase1Data ? "ok" : "alert");
 
       if (!phase1Data) {
         setStepStatus("excel", "양식 필요", "alert");
+      } else if (!rosterComplete()) {
+        setStepStatus("excel", "명단 필요", "alert");
       } else if (!phase2Data) {
         setStepStatus("excel", "미입력", "alert");
       } else {
@@ -1409,24 +1656,44 @@
 
     function renderSubjectExcelInputs(phase1, phase2) {
       const container = $("subject-excel-list");
+      const tabContainer = $("subject-tab-list");
       if (!phase1) {
+        tabContainer.innerHTML = "";
         container.innerHTML = `<div class="muted">먼저 HWP 양식을 인식하면 교과별 엑셀 선택 칸이 자동으로 만들어집니다.</div>`;
+        $("score-grid").innerHTML = "";
+        $("save-score-grid-button").disabled = true;
         return;
       }
 
       const subjects = subjectsFromPhase1(phase1);
       if (!subjects.length) {
+        tabContainer.innerHTML = "";
         container.innerHTML = `<div class="status-bad">HWP 양식에서 교과를 찾지 못했습니다.</div>`;
+        $("score-grid").innerHTML = "";
+        $("save-score-grid-button").disabled = true;
         return;
       }
 
-      container.innerHTML = subjects.map((subject) => {
-        const inputId = subjectUploadId(subject);
+      if (!activeScoreSubject || !subjects.some((subject) => subjectKey(subject) === subjectKey(activeScoreSubject))) {
+        activeScoreSubject = subjects[0];
+      }
+
+      tabContainer.innerHTML = subjects.map((subject) => {
         const state = subjectCardState(subject, phase1, phase2);
-        const details = state.details.length
-          ? `<div class="subject-upload-detail">${state.details.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}</div>`
-          : "";
         return `
+          <button class="subject-tab ${subjectKey(subject) === subjectKey(activeScoreSubject) ? "active" : ""} ${state.cardClass}" type="button" data-action="select-subject-tab" data-subject="${escapeHtml(subject)}">
+            ${escapeHtml(subject)} · ${escapeHtml(state.statusText)}
+          </button>
+        `;
+      }).join("");
+
+      const subject = activeScoreSubject;
+      const inputId = subjectUploadId(subject);
+      const state = subjectCardState(subject, phase1, phase2);
+      const details = state.details.length
+        ? `<div class="subject-upload-detail">${state.details.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}</div>`
+        : "";
+      container.innerHTML = `
           <section class="subject-upload-card ${state.cardClass}" data-subject="${escapeHtml(subject)}">
             <div class="subject-upload-head">
               <div class="subject-upload-title">${escapeHtml(subject)}</div>
@@ -1441,8 +1708,117 @@
             <div class="subject-upload-status" data-role="subject-status"><span class="${state.statusClass}">${escapeHtml(state.statusText)}</span></div>
             ${details}
           </section>
+      `;
+      renderScoreGrid(subject);
+      $("save-score-grid-button").disabled = !phase1Data || !rosterComplete() || !subject;
+    }
+
+    function phase2StudentLookup() {
+      const lookup = new Map();
+      for (const student of phase2Data?.students || []) {
+        const key = studentKey(student);
+        if (key) lookup.set(key, student);
+      }
+      return lookup;
+    }
+
+    function assessmentLookupForStudent(student) {
+      const lookup = new Map();
+      for (const assessment of student?.assessments || []) {
+        lookup.set(String(assessment.block_index), assessment);
+      }
+      return lookup;
+    }
+
+    function rawValueForLevel(level) {
+      if (level === "도달") return "상";
+      if (level === "부분도달") return "중";
+      if (level === "노력중") return "하";
+      return "";
+    }
+
+    function normalizedScoreValue(rawValue, level) {
+      const raw = String(rawValue || "").trim();
+      if (["상", "중", "하"].includes(raw)) return raw;
+      return rawValueForLevel(level);
+    }
+
+    function renderScoreGrid(subject) {
+      const blocks = phase1BlocksForSubject(subject);
+      const roster = normalizeStudentRoster(studentRoster);
+      if (!phase1Data) {
+        $("score-grid").innerHTML = "";
+        return;
+      }
+      if (!roster.length) {
+        $("score-grid").innerHTML = `<div class="muted" style="padding: 12px;">기본정보에서 학생 명단을 먼저 저장하세요.</div>`;
+        return;
+      }
+      if (!blocks.length) {
+        $("score-grid").innerHTML = `<div class="status-bad" style="padding: 12px;">선택한 과목의 평가 항목이 없습니다.</div>`;
+        return;
+      }
+
+      const studentLookup = phase2StudentLookup();
+      const headerCells = blocks.map((block) => `
+        <th title="${escapeHtml(block.evaluation_element)}">
+          ${escapeHtml(block.area)}<br>
+          <span class="muted">${escapeHtml(block.evaluation_element)}</span>
+        </th>
+      `).join("");
+      const bodyRows = roster.map((student) => {
+        const savedStudent = studentLookup.get(studentKey(student));
+        const assessmentLookup = assessmentLookupForStudent(savedStudent);
+        const scoreCells = blocks.map((block) => {
+          const assessment = assessmentLookup.get(String(block.index));
+          const value = normalizedScoreValue(assessment?.raw_value, assessment?.level);
+          return `
+            <td>
+              <select data-score-block="${escapeHtml(block.index)}" aria-label="${escapeHtml(student.name)} ${escapeHtml(block.evaluation_element)}">
+                <option value="" ${value ? "" : "selected"}></option>
+                <option value="상" ${value === "상" ? "selected" : ""}>상</option>
+                <option value="중" ${value === "중" ? "selected" : ""}>중</option>
+                <option value="하" ${value === "하" ? "selected" : ""}>하</option>
+              </select>
+            </td>
+          `;
+        }).join("");
+        return `
+          <tr data-score-student="${escapeHtml(studentKey(student))}" data-number="${escapeHtml(student.number)}" data-name="${escapeHtml(student.name)}">
+            <td class="student-col">${escapeHtml(student.number)}</td>
+            <td class="name-col">${escapeHtml(student.name)}</td>
+            ${scoreCells}
+          </tr>
         `;
       }).join("");
+
+      $("score-grid").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th class="student-col">번호</th>
+              <th class="name-col">이름</th>
+              ${headerCells}
+            </tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      `;
+    }
+
+    function scoreGridRows() {
+      return queryAll("#score-grid tbody tr").map((row, index) => {
+        const values = {};
+        row.querySelectorAll("select[data-score-block]").forEach((select) => {
+          values[select.dataset.scoreBlock] = select.value;
+        });
+        return {
+          number: row.dataset.number || "",
+          name: row.dataset.name || "",
+          source_row: index + 1,
+          values,
+        };
+      });
     }
 
     function renderBlocks(phase1) {
@@ -1716,21 +2092,27 @@
       phase3Data = payload.phase3 || null;
       resultPaths = payload.paths || {};
       schoolInfo = normalizeSchoolInfo(payload.school_info);
+      studentRoster = normalizeStudentRoster(payload.student_roster || []);
       selectedStudentIndex = 0;
       selectedSubject = "전체";
+      if (!activeScoreSubject && phase1Data) {
+        activeScoreSubject = subjectsFromPhase1(phase1Data)[0] || "";
+      }
 
       $("phase1-link").href = resultPaths.phase1_json || "#";
       $("phase2-link").href = resultPaths.phase2_json || "#";
       $("phase3-link").href = resultPaths.phase3_json || "#";
       $("metric-blocks").textContent = phase1Data?.block_count ?? "-";
-      $("metric-students").textContent = phase2Data?.student_count ?? "-";
+      $("metric-students").textContent = phase2Data?.student_count ?? (studentRoster.length || "-");
       $("metric-issues").textContent = phase2Data ? (phase2Data.issues || []).length : "-";
       $("reset-scores-button").disabled = !phase1Data || !phase2Data;
+      $("save-score-grid-button").disabled = !phase1Data || !rosterComplete() || !activeScoreSubject;
       $("prepare-output-button").disabled = !phase2Data;
       $("generate-sample-output-button").disabled = !phase3Data?.ready;
       $("generate-output-button").disabled = !phase3Data?.ready;
 
       renderSchoolInfo(schoolInfo);
+      renderRoster(studentRoster);
       renderPhase2Status(phase2Data);
       renderBlocks(phase1Data);
       renderSubjectExcelInputs(phase1Data, phase2Data);
@@ -1759,9 +2141,16 @@
         class_name: $("class-input").value,
         teacher_name: $("teacher-input").value,
       });
+      const nextRoster = normalizeStudentRoster(rosterFromGrid());
       if (!schoolInfoComplete(nextInfo)) {
         $("school-info-status").innerHTML = `<span class="status-bad">학년, 반, 교사 이름을 모두 입력하세요.</span>`;
         showErrorPopup("기본 정보 입력 필요", "학년, 반, 교사 이름을 모두 입력하세요.");
+        return;
+      }
+      const nextRosterIssues = rosterIssues(nextRoster);
+      if (nextRosterIssues.length) {
+        $("roster-status").innerHTML = `<span class="status-bad">${escapeHtml(nextRosterIssues[0])}</span>`;
+        showErrorPopup("학생 명단 확인 필요", nextRosterIssues.join("\n"));
         return;
       }
 
@@ -1771,7 +2160,7 @@
         const response = await fetch("/api/school-info", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(nextInfo),
+          body: JSON.stringify({ ...nextInfo, student_roster: nextRoster }),
         });
         const payload = await response.json();
         if (!payload.ok) throw new Error(payload.error || "기본 정보 저장 실패");
@@ -1840,6 +2229,11 @@
         showErrorPopup("양식 인식 필요", "먼저 HWP 양식을 인식하세요.");
         return;
       }
+      if (!rosterComplete()) {
+        $("excel-status").innerHTML = `<span class="status-bad">기본정보에서 학생 명단을 먼저 저장하세요.</span>`;
+        showErrorPopup("학생 명단 확인 필요", rosterIssues().join("\n"));
+        return;
+      }
       const input = subjectFileInput(subject);
       const card = input?.closest(".subject-upload-card");
       const statusEl = card?.querySelector('[data-role="subject-status"]');
@@ -1880,6 +2274,47 @@
         showErrorPopup("엑셀 불러오기 실패", error.message);
       } finally {
         if (button) button.disabled = false;
+      }
+    }
+
+    async function saveScoreGrid() {
+      if (!phase1Data) {
+        showErrorPopup("양식 인식 필요", "먼저 HWP 양식을 인식하세요.");
+        return;
+      }
+      if (!rosterComplete()) {
+        showErrorPopup("학생 명단 확인 필요", rosterIssues().join("\n"));
+        return;
+      }
+      if (!activeScoreSubject) {
+        showErrorPopup("과목 선택 필요", "저장할 과목을 먼저 선택하세요.");
+        return;
+      }
+
+      $("save-score-grid-button").disabled = true;
+      $("excel-status").textContent = `${activeScoreSubject} 입력 그리드를 저장하는 중입니다.`;
+      try {
+        const response = await fetch("/api/save-score-grid", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: activeScoreSubject,
+            rows: scoreGridRows(),
+          }),
+        });
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "그리드 저장 실패");
+        renderAll(payload);
+        const errorCount = payload.phase2?.error_count ?? 0;
+        const warningCount = payload.phase2?.warning_count ?? 0;
+        const cls = errorCount ? "status-bad" : warningCount ? "status-warn" : "status-ok";
+        $("excel-status").innerHTML = `<span class="${cls}">${escapeHtml(activeScoreSubject)} 그리드 저장 완료: 오류 ${errorCount}건, 경고 ${warningCount}건</span>`;
+        showPhase2IssuePopup(payload.phase2, `${activeScoreSubject} 그리드 저장`);
+      } catch (error) {
+        $("excel-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("그리드 저장 실패", error.message);
+      } finally {
+        $("save-score-grid-button").disabled = !phase1Data || !rosterComplete() || !activeScoreSubject;
       }
     }
 
@@ -1965,6 +2400,8 @@
         issueMatchesSubject,
         subjectCardState,
         subjectsFromPhase1,
+        normalizeStudentRoster,
+        parseRosterPaste,
       };
     }
 
@@ -1973,8 +2410,20 @@
     });
     $("reload-button").addEventListener("click", loadAll);
     $("save-school-info-button").addEventListener("click", saveSchoolInfo);
+    $("add-roster-row-button").addEventListener("click", () => addRosterRow());
+    $("paste-roster-button").addEventListener("click", () => {
+      const parsed = parseRosterPaste($("roster-paste-input").value);
+      if (!parsed.length) {
+        showErrorPopup("명단 붙여넣기 필요", "번호와 이름이 들어있는 명단을 붙여넣으세요.");
+        return;
+      }
+      studentRoster = normalizeStudentRoster(parsed);
+      renderRoster(studentRoster);
+      $("roster-paste-input").value = "";
+    });
     $("recognize-button").addEventListener("click", recognizeTemplate);
     $("reset-scores-button").addEventListener("click", resetScores);
+    $("save-score-grid-button").addEventListener("click", saveScoreGrid);
     $("prepare-output-button").addEventListener("click", prepareOutputData);
     $("generate-sample-output-button").addEventListener("click", () => generateHwpReports(1));
     $("generate-output-button").addEventListener("click", () => generateHwpReports(0));
@@ -1995,6 +2444,30 @@
       const button = event.target.closest('button[data-action="import-subject"]');
       if (!button) return;
       importSubjectExcelFiles(button.dataset.subject);
+    });
+    $("subject-tab-list").addEventListener("click", (event) => {
+      const button = event.target.closest('button[data-action="select-subject-tab"]');
+      if (!button) return;
+      activeScoreSubject = button.dataset.subject;
+      renderSubjectExcelInputs(phase1Data, phase2Data);
+    });
+    $("roster-rows").addEventListener("input", () => {
+      studentRoster = normalizeStudentRoster(rosterFromGrid());
+      const issues = rosterIssues(studentRoster);
+      $("roster-status").innerHTML = issues.length
+        ? `<span class="status-bad">${escapeHtml(issues[0])}</span>`
+        : `<span class="status-ok">학생 ${studentRoster.length}명 입력됨</span>`;
+      updateStepStatuses();
+    });
+    $("roster-rows").addEventListener("click", (event) => {
+      const button = event.target.closest('button[data-action="delete-roster-row"]');
+      if (!button) return;
+      const row = button.closest("tr");
+      if (row) row.remove();
+      studentRoster = normalizeStudentRoster(rosterFromGrid());
+      if (!queryAll("#roster-rows tr").length) addRosterRow();
+      renderRoster(studentRoster);
+      updateStepStatuses();
     });
     $("student-list-rows").addEventListener("click", (event) => {
       const row = event.target.closest("tr[data-student-index]");

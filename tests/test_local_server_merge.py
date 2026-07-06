@@ -630,6 +630,43 @@ class LocalServerMergeTest(unittest.TestCase):
         self.assertEqual(state["school_info"], {"grade": "3", "class_name": "2", "teacher_name": "홍길동"})
         self.assertIsNone(state["current_phase3_json"])
 
+    def test_save_school_info_stores_roster_and_clears_scores_when_roster_changes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_path = Path(temp_dir) / "server_state.json"
+            local_server.write_json_file(
+                state_path,
+                {
+                    "school_info": {"grade": "3", "class_name": "1", "teacher_name": "Teacher"},
+                    "student_roster": [{"number": "1", "name": "Student One"}],
+                    "current_phase2_json": "old.phase2.json",
+                    "current_phase3_json": "old.phase3.json",
+                },
+            )
+
+            original_state_path = local_server.STATE_PATH
+            try:
+                local_server.STATE_PATH = state_path
+                payload = local_server.save_school_info(
+                    {
+                        "grade": "3",
+                        "class_name": "2",
+                        "teacher_name": "Teacher",
+                        "student_roster": [
+                            {"number": "1", "name": "Student One"},
+                            {"number": "2", "name": "Student Two"},
+                        ],
+                    }
+                )
+            finally:
+                local_server.STATE_PATH = original_state_path
+
+            state = local_server.read_json_file(state_path)
+
+        self.assertEqual([item["number"] for item in payload["student_roster"]], ["1", "2"])
+        self.assertEqual([item["name"] for item in state["student_roster"]], ["Student One", "Student Two"])
+        self.assertIsNone(state["current_phase2_json"])
+        self.assertIsNone(state["current_phase3_json"])
+
     def test_direct_hwp_generation_removes_failed_candidate_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
@@ -923,6 +960,87 @@ class LocalServerMergeTest(unittest.TestCase):
         self.assertEqual(merged["metadata"]["roster"][0]["name"], "김대실")
         self.assertEqual(merged["metadata"]["roster"][1]["number"], "2")
         self.assertFalse(merged["issues"])
+
+    def test_configured_roster_is_baseline_for_first_subject_excel(self):
+        configured_roster = [
+            {"number": "1", "name": "Student One"},
+            {"number": "2", "name": "Student Two"},
+        ]
+        first = payload(
+            "Math",
+            1,
+            [
+                student(5, "1", "Student One", 1, "Math", "상"),
+                student(6, "3", "Extra Student", 1, "Math", "중"),
+            ],
+        )
+
+        merged = merge_phase2_payload(PHASE1_PATH, [1, 2], None, first, configured_roster)
+
+        self.assertEqual([item["number"] for item in merged["metadata"]["roster"]], ["1", "2"])
+        self.assertEqual(merged["metadata"]["roster_source"], "basic_info")
+        self.assertEqual([item["number"] for item in merged["students"]], ["1", "2"])
+        student_one = next(item for item in merged["students"] if item["number"] == "1")
+        student_two = next(item for item in merged["students"] if item["number"] == "2")
+        self.assertEqual([item["block_index"] for item in student_one["assessments"]], [1])
+        self.assertEqual(student_two["assessments"], [])
+        self.assertFalse(any(item["number"] == "3" for item in merged["students"]))
+        self.assertTrue(any("기준 명단" in issue["message"] for issue in merged["issues"]))
+
+    def test_save_score_grid_merges_manual_values_against_saved_roster(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            phase1_path = temp_root / "template.phase1.json"
+            phase1_path.write_text('{"blocks": []}', encoding="utf-8")
+            state_path = temp_root / "server_state.json"
+            phase2_dir = temp_root / "phase2"
+            local_server.write_json_file(
+                state_path,
+                {
+                    "current_phase1_json": str(phase1_path),
+                    "current_phase2_json": None,
+                    "school_info": {"grade": "3", "class_name": "2", "teacher_name": "Teacher"},
+                    "student_roster": [
+                        {"number": "1", "name": "Student One"},
+                        {"number": "2", "name": "Student Two"},
+                    ],
+                },
+            )
+            original_state_path = local_server.STATE_PATH
+            original_phase2_dir = local_server.PHASE2_DIR
+            original_load_columns = local_server.load_assessment_columns
+            try:
+                local_server.STATE_PATH = state_path
+                local_server.PHASE2_DIR = phase2_dir
+                local_server.load_assessment_columns = lambda path: [
+                    AssessmentColumn(1, "Math", "Area 1", "Element 1", "1. Math / Area 1"),
+                    AssessmentColumn(2, "Math", "Area 2", "Element 2", "2. Math / Area 2"),
+                    AssessmentColumn(3, "Korean", "Area 3", "Element 3", "3. Korean / Area 3"),
+                ]
+
+                payload = local_server.save_score_grid(
+                    {
+                        "subject": "Math",
+                        "rows": [
+                            {"number": "1", "name": "Student One", "values": {"1": "상", "2": ""}},
+                            {"number": "2", "name": "Student Two", "values": {"1": "하", "2": "중"}},
+                        ],
+                    }
+                )
+            finally:
+                local_server.STATE_PATH = original_state_path
+                local_server.PHASE2_DIR = original_phase2_dir
+                local_server.load_assessment_columns = original_load_columns
+
+            phase2 = payload["phase2"]
+
+        self.assertEqual(phase2["metadata"]["roster_source"], "basic_info")
+        self.assertEqual(phase2["metadata"]["imported_column_count"], 2)
+        self.assertEqual([student["number"] for student in phase2["students"]], ["1", "2"])
+        first = next(student for student in phase2["students"] if student["number"] == "1")
+        second = next(student for student in phase2["students"] if student["number"] == "2")
+        self.assertEqual([item["raw_value"] for item in first["assessments"]], ["상", ""])
+        self.assertEqual([item["raw_value"] for item in second["assessments"]], ["하", "중"])
 
     def test_name_mismatch_and_extra_student_are_excluded_from_merge(self):
         first = payload(

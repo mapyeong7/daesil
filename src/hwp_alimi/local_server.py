@@ -25,6 +25,7 @@ from hwp_alimi.phase1 import (
 from hwp_alimi.phase2 import (
     default_output_path as default_phase2_output_path,
     load_assessment_columns,
+    normalize_level,
     parse_neis_excel_tsv,
     parse_neis_paste,
     result_to_payload,
@@ -101,6 +102,53 @@ def write_json_file(path: Path, payload: dict) -> None:
     atomic_write_json(path, payload)
 
 
+def normalize_student_roster(roster: object) -> list[dict]:
+    if not isinstance(roster, list):
+        return []
+    normalized: list[dict] = []
+    for index, item in enumerate(roster, start=1):
+        if not isinstance(item, dict):
+            continue
+        number = str(item.get("number") or "").strip()
+        name = str(item.get("name") or "").strip()
+        if not number and not name:
+            continue
+        normalized.append(
+            {
+                "number": number,
+                "name": name,
+                "source_row": item.get("source_row") or index,
+            }
+        )
+    return sorted(normalized, key=student_sort_key)
+
+
+def validate_student_roster(roster: list[dict]) -> list[dict]:
+    normalized = normalize_student_roster(roster)
+    if not normalized:
+        raise ValueError("학생 명단을 1명 이상 입력하세요.")
+
+    seen_numbers: dict[str, dict] = {}
+    seen_names: dict[str, dict] = {}
+    for index, student in enumerate(normalized, start=1):
+        number = str(student.get("number") or "").strip()
+        name = str(student.get("name") or "").strip()
+        if not number or not name:
+            raise ValueError(f"학생 명단 {index}행에 번호와 이름을 모두 입력하세요.")
+        if number in seen_numbers:
+            raise ValueError(f"학생 번호 {number}번이 중복되었습니다.")
+        name_key = compact_student_name(name)
+        if name_key in seen_names:
+            raise ValueError(f"학생 이름 {name}이 중복되었습니다.")
+        seen_numbers[number] = student
+        seen_names[name_key] = student
+    return normalized
+
+
+def rosters_equal(left: object, right: object) -> bool:
+    return normalize_student_roster(left) == normalize_student_roster(right)
+
+
 def remove_files(paths: list[Path]) -> list[Path]:
     removed: list[Path] = []
     for path in paths:
@@ -117,11 +165,13 @@ def read_state() -> dict:
     state = read_json_file(STATE_PATH)
     if state:
         state["school_info"] = normalize_school_info(state.get("school_info"))
+        state["student_roster"] = normalize_student_roster(state.get("student_roster"))
         return state
     return {
         "current_phase1_json": str(SAMPLE_PHASE1) if SAMPLE_PHASE1.exists() else None,
         "current_phase2_json": str(SAMPLE_PHASE2) if SAMPLE_PHASE2.exists() else None,
         "school_info": normalize_school_info(None),
+        "student_roster": [],
     }
 
 
@@ -800,6 +850,7 @@ def merge_phase2_payload(
     all_columns: list,
     existing_payload: dict | None,
     incoming_payload: dict,
+    baseline_roster: list[dict] | None = None,
 ) -> dict:
     existing_can_merge = bool(
         existing_payload
@@ -820,7 +871,8 @@ def merge_phase2_payload(
 
     roster_issues, excluded_student_keys = validate_payload_roster_uniqueness(incoming_payload, incoming_summary)
     metadata = existing.get("metadata", {}) if existing else {}
-    baseline_roster = list(metadata.get("roster") or [])
+    configured_roster = normalize_student_roster(baseline_roster)
+    baseline_roster = configured_roster or list(metadata.get("roster") or [])
     if not baseline_roster:
         if existing:
             baseline_roster = roster_from_students(existing.get("students", []))
@@ -832,7 +884,8 @@ def merge_phase2_payload(
                     if student_identity(student)[2] not in excluded_student_keys
                 ]
             )
-    if existing:
+    baseline_roster = normalize_student_roster(baseline_roster)
+    if baseline_roster and (existing or configured_roster):
         incoming_roster_issues, incoming_excluded_student_keys = validate_incoming_roster(
             baseline_roster,
             incoming_payload,
@@ -843,6 +896,16 @@ def merge_phase2_payload(
 
     students_by_number: dict[str, dict] = {}
     merge_issues: list[dict] = []
+    for roster_student in baseline_roster:
+        number, name, key = student_identity(roster_student)
+        if not key:
+            continue
+        students_by_number[key] = {
+            "source_row": roster_student.get("source_row"),
+            "number": number,
+            "name": name,
+            "assessments": [],
+        }
     for payload in (existing, incoming_payload):
         if not payload:
             continue
@@ -956,12 +1019,144 @@ def merge_phase2_payload(
             "imported_column_count": imported_count,
             "imports": imports,
             "roster": baseline_roster,
+            "roster_source": "basic_info" if configured_roster else "imported_scores",
             "global_issues": global_issues,
         },
         "columns": merged_columns,
         "students": merged_students,
         "issues": issues,
     }
+
+
+def assessment_column_payload(column) -> dict:
+    return {
+        "index": int(getattr(column, "index", 0)),
+        "subject": str(getattr(column, "subject", "") or ""),
+        "area": str(getattr(column, "area", "") or ""),
+        "evaluation_element": str(getattr(column, "evaluation_element", "") or ""),
+        "column_label": str(getattr(column, "column_label", "") or ""),
+        "header_candidates": list(getattr(column, "header_candidates", []) or []),
+    }
+
+
+def grid_rows_by_student(rows: object) -> dict[str, dict]:
+    result: dict[str, dict] = {}
+    if not isinstance(rows, list):
+        return result
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        number, name, key = student_identity(row)
+        values = row.get("values") if isinstance(row.get("values"), dict) else {}
+        if key:
+            result[key] = {"number": number, "name": name, "values": values}
+    return result
+
+
+def score_grid_to_payload(
+    phase1_path: Path,
+    subject: str,
+    columns: list,
+    roster: list[dict],
+    rows: object,
+) -> dict:
+    row_lookup = grid_rows_by_student(rows)
+    column_payloads = [assessment_column_payload(column) for column in columns]
+    students: list[dict] = []
+
+    for row_index, roster_student in enumerate(roster, start=1):
+        number, name, key = student_identity(roster_student)
+        grid_row = row_lookup.get(key, {})
+        values = grid_row.get("values") if isinstance(grid_row.get("values"), dict) else {}
+        assessments: list[dict] = []
+        for column, column_payload in zip(columns, column_payloads):
+            block_index = int(getattr(column, "index", 0))
+            raw_value = str(values.get(str(block_index)) or values.get(block_index) or "").strip()
+            assessments.append(
+                {
+                    "block_index": block_index,
+                    "column_label": column_payload["column_label"],
+                    "subject": column_payload["subject"],
+                    "area": column_payload["area"],
+                    "evaluation_element": column_payload["evaluation_element"],
+                    "level": normalize_level(raw_value) if raw_value else None,
+                    "raw_value": raw_value,
+                }
+            )
+        students.append(
+            {
+                "source_row": row_index,
+                "number": number,
+                "name": name,
+                "assessments": assessments,
+            }
+        )
+
+    return {
+        "source_phase1_json": str(phase1_path),
+        "paste_source": f"manual-grid:{subject}",
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "block_count": len(column_payloads),
+        "student_count": len(students),
+        "has_errors": False,
+        "has_warnings": False,
+        "error_count": 0,
+        "warning_count": 0,
+        "validation_mode": "manual_score_grid",
+        "header_exists": True,
+        "header_message": f"{subject} 입력 그리드에서 {len(column_payloads)}개 평가 항목을 저장했습니다.",
+        "header_checks": [],
+        "source_format": "manual_score_grid",
+        "expected_subject": subject,
+        "metadata": {
+            "excel_layout": {
+                "subject": subject,
+                "title": f"{subject} 직접 입력",
+                "data_start_index": 0,
+            },
+            "manual_grid": True,
+        },
+        "columns": column_payloads,
+        "students": students,
+        "issues": [],
+    }
+
+
+def save_score_grid(payload: dict) -> dict:
+    state = read_state()
+    phase1_path = state_path(state, "current_phase1_json")
+    if phase1_path is None or not phase1_path.exists():
+        raise ValueError("먼저 HWP 양식을 인식해야 합니다.")
+
+    roster = validate_student_roster(state.get("student_roster") or [])
+    all_columns = load_assessment_columns(phase1_path)
+    subject = resolve_expected_subject(all_columns, payload.get("subject"))
+    subject_columns = columns_for_expected_subject(all_columns, subject)
+    single_payload = score_grid_to_payload(
+        phase1_path,
+        subject,
+        subject_columns,
+        roster,
+        payload.get("rows") or [],
+    )
+
+    PHASE2_DIR.mkdir(parents=True, exist_ok=True)
+    aggregate_output_path = default_phase2_output_path(phase1_path, PHASE2_DIR)
+    existing_payload = read_json_file(state_path(state, "current_phase2_json"))
+    aggregate_payload = merge_phase2_payload(
+        phase1_path,
+        all_columns,
+        existing_payload,
+        single_payload,
+        roster,
+    )
+    aggregate_payload["latest_manual_subject"] = subject
+    write_json_file(aggregate_output_path, aggregate_payload)
+
+    state["current_phase2_json"] = str(aggregate_output_path)
+    state["current_phase3_json"] = None
+    write_state(state)
+    return get_results()
 
 
 def extract_excel_tsv(excel_path: Path, tsv_path: Path) -> None:
@@ -1022,7 +1217,13 @@ def import_excel(upload_name: str, content: bytes, expected_subject: str = "") -
 
         aggregate_output_path = default_phase2_output_path(phase1_path, PHASE2_DIR)
         existing_payload = read_json_file(state_path(state, "current_phase2_json"))
-        aggregate_payload = merge_phase2_payload(phase1_path, all_columns, existing_payload, single_payload)
+        aggregate_payload = merge_phase2_payload(
+            phase1_path,
+            all_columns,
+            existing_payload,
+            single_payload,
+            state.get("student_roster"),
+        )
         aggregate_payload["latest_source_excel"] = str(upload_path)
         aggregate_payload["latest_extracted_tsv"] = str(tsv_path)
         write_json_file(aggregate_output_path, aggregate_payload)
@@ -1075,7 +1276,20 @@ def reset_scores() -> dict:
 
 def save_school_info(payload: dict) -> dict:
     state = read_state()
+    previous_roster = normalize_student_roster(state.get("student_roster"))
+    has_roster_payload = any(key in payload for key in ("student_roster", "roster", "students"))
+    next_roster = previous_roster
+    if has_roster_payload:
+        next_roster = validate_student_roster(
+            payload.get("student_roster")
+            or payload.get("roster")
+            or payload.get("students")
+            or []
+        )
     state["school_info"] = normalize_school_info(payload)
+    state["student_roster"] = next_roster
+    if not rosters_equal(previous_roster, next_roster):
+        state["current_phase2_json"] = None
     state["current_phase3_json"] = None
     write_state(state)
     return get_results()
@@ -1441,6 +1655,14 @@ def existing_relative_url(path: Path | None) -> str | None:
     return relative_url(path) if path and path.exists() else None
 
 
+def phase2_matches_student_roster(phase2_payload: dict | None, roster: list[dict]) -> bool:
+    normalized_roster = normalize_student_roster(roster)
+    if not normalized_roster:
+        return True
+    metadata_roster = normalize_student_roster((phase2_payload or {}).get("metadata", {}).get("roster"))
+    return metadata_roster == normalized_roster
+
+
 def phase3_for_response(phase3_path: Path | None) -> dict | None:
     payload = read_json_file(phase3_path)
     if not payload:
@@ -1494,12 +1716,14 @@ def get_results() -> dict:
     phase1_payload = read_json_file(phase1_path)
     if not phase1_payload:
         phase1_path = None
+    student_roster = normalize_student_roster(state.get("student_roster"))
 
     phase2_payload = read_json_file(phase2_path)
     if not (
         phase1_path
         and phase2_payload
         and payload_source_matches(phase2_payload, "source_phase1_json", phase1_path)
+        and phase2_matches_student_roster(phase2_payload, student_roster)
     ):
         phase2_path = None
         phase2_payload = None
@@ -1522,6 +1746,7 @@ def get_results() -> dict:
         "phase2": phase2_payload,
         "phase3": phase3_payload,
         "school_info": normalize_school_info(state.get("school_info")),
+        "student_roster": student_roster,
         "paths": {
             "phase1_json": existing_relative_url(phase1_path),
             "phase2_json": existing_relative_url(phase2_path),
@@ -1586,6 +1811,10 @@ class LocalHandler(SimpleHTTPRequestHandler):
             if path == "/api/school-info":
                 payload = json.loads(body.decode("utf-8") or "{}")
                 self.send_json({"ok": True, **save_school_info(payload)})
+                return
+            if path == "/api/save-score-grid":
+                payload = json.loads(body.decode("utf-8") or "{}")
+                self.send_json({"ok": True, **save_score_grid(payload)})
                 return
             if path == "/api/reset-scores":
                 self.send_json({"ok": True, **reset_scores()})
