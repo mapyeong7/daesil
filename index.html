@@ -2012,7 +2012,16 @@
     }
 
     async function loadJson(path, options = {}) {
-      const response = await fetch(encodeURI(path), { cache: "no-store", ...options });
+      let response;
+      try {
+        response = await fetch(encodeURI(path), { cache: "no-store", ...options });
+      } catch (error) {
+        const isLocalFile = window.location?.protocol === "file:";
+        const message = isLocalFile
+          ? "index.html 파일을 직접 열면 결과를 불러올 수 없습니다. 폴더의 HwpAlimi.exe 실행파일로 시작해 주세요."
+          : "로컬 서버에 연결하지 못했습니다. HwpAlimi.exe를 다시 실행한 뒤 브라우저를 새로고침해 주세요.";
+        throw new Error(message);
+      }
       if (!response.ok) {
         throw new Error(`${path} 파일을 불러오지 못했습니다. HTTP ${response.status}`);
       }

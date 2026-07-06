@@ -19,6 +19,12 @@
 더블클릭 실행:
 
 ```text
+HwpAlimi.exe
+```
+
+실행 파일이 없는 개발 폴더에서는 아래 배치 파일을 사용할 수 있습니다.
+
+```text
 start_local.bat
 ```
 
@@ -51,7 +57,8 @@ http://127.0.0.1:8765/
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_local.ps1
 ```
 
-생성된 `dist\hwp-alimi-local-날짜시간` 폴더 안의 `start_local.bat`을 실행하면 됩니다.
+생성된 `dist\hwp-alimi-local-날짜시간` 폴더 안의 `HwpAlimi.exe`를 실행하면 됩니다.
+`index.html`을 직접 열면 로컬 서버가 없어서 결과를 불러올 수 없습니다.
 
 ## 검증 정책
 
