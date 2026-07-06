@@ -1640,11 +1640,15 @@
 
     function generatedFilesHtml(phase3) {
       const links = phase3?.generated_file_links || [];
+      const combined = phase3?.generated_combined_hwp_link || null;
       const isSample = phase3?.generated_mode === "sample";
+      const combinedLink = combined?.url
+        ? `<a class="zip-link" href="${escapeHtml(combined.url)}" download>전체 학생 HWP 내려받기${combined.name ? ` (${escapeHtml(combined.name)})` : ""}</a>`
+        : "";
       const zipLink = phase3?.generated_zip_url
         ? `<a class="zip-link" href="${escapeHtml(phase3.generated_zip_url)}" download>${isSample ? "테스트 HWP ZIP 내려받기" : "전체 HWP ZIP 내려받기"}${phase3.generated_zip_name ? ` (${escapeHtml(phase3.generated_zip_name)})` : ""}</a>`
         : "";
-      if (!links.length && !zipLink) return "";
+      if (!links.length && !zipLink && !combinedLink) return "";
       const folderLink = phase3.generated_output_dir_url
         ? `<a href="${escapeHtml(phase3.generated_output_dir_url)}" target="_blank" rel="noopener">출력 폴더 열기</a>`
         : "";
@@ -1655,6 +1659,7 @@
       }).join("");
       return `
         <div class="generated-files">
+          ${combinedLink}
           ${zipLink}
           ${folderLink}
           ${fileLinks}
@@ -1687,10 +1692,12 @@
       if (phase3.ready) {
         const generated = phase3.generated_files || [];
         const isSample = phase3.generated_mode === "sample";
+        const combinedText = phase3.generated_combined_hwp_link ? "전체 학생 HWP 1개 포함" : "";
         $("output-status").innerHTML = `
           <span class="status-ok">출력 준비 완료</span>
           <span class="muted">학생 ${phase3.student_count ?? 0}명, 평가 항목 ${phase3.block_count ?? 0}개</span>
           ${generated.length ? `<div class="status-ok">${isSample ? "테스트 HWP 파일" : "생성된 HWP 파일"} ${generated.length}개</div>` : ""}
+          ${combinedText ? `<div class="status-ok">${combinedText}</div>` : ""}
           ${generationMethodHtml(phase3)}
           ${generatedFilesHtml(phase3)}
         `;

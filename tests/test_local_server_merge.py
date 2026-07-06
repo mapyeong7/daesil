@@ -421,14 +421,17 @@ class LocalServerMergeTest(unittest.TestCase):
             missing_hwp = project_dir / "02_이대실.hwp"
             outside_hwp = outside_dir / "outside.hwp"
             zip_path = project_dir / "hwp_reports.zip"
+            combined_hwp = project_dir / "3\ud559\ub144 3\ubc18 \uc804\uccb4.hwp"
             existing_hwp.write_bytes(b"hwp")
             outside_hwp.write_bytes(b"hwp")
             zip_path.write_bytes(b"zip")
+            combined_hwp.write_bytes(b"combined")
             phase3_path = project_dir / "sample.phase3.json"
             local_server.write_json_file(
                 phase3_path,
                 {
                     "generated_files": [str(existing_hwp), str(missing_hwp), str(outside_hwp)],
+                    "generated_combined_hwp": str(combined_hwp),
                     "generated_zip": str(zip_path),
                 },
             )
@@ -439,6 +442,8 @@ class LocalServerMergeTest(unittest.TestCase):
             self.assertTrue(payload["generated_file_links"][0]["url"].endswith("/01_%EA%B9%80%EB%8C%80%EC%8B%A4.hwp"))
             self.assertEqual(payload["generated_output_dir"], str(project_dir))
             self.assertTrue(payload["generated_output_dir_url"])
+            self.assertEqual(payload["generated_combined_hwp_link"]["name"], "3\ud559\ub144 3\ubc18 \uc804\uccb4.hwp")
+            self.assertTrue(payload["generated_combined_hwp_link"]["url"].endswith(".hwp"))
             self.assertTrue(payload["generated_zip_url"])
             self.assertEqual(payload["generated_zip_name"], "hwp_reports.zip")
 
@@ -1061,6 +1066,87 @@ class LocalServerMergeTest(unittest.TestCase):
                 self.assertEqual(sorted(archive.namelist()), ["01_김대실.hwp", "02_이대실.hwp"])
                 self.assertEqual(archive.read("01_김대실.hwp"), b"first")
 
+    def test_combined_report_base_name_uses_grade_and_class(self):
+        self.assertEqual(
+            local_server.combined_report_base_name({"grade": "3", "class_name": "3"}),
+            "3\ud559\ub144 3\ubc18 \uc804\uccb4",
+        )
+
+    def test_create_combined_hwp_report_merges_created_files_and_validates_checkboxes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir)
+            first = output_dir / "01_student.hwp"
+            second = output_dir / "02_student.hwp"
+            first.write_bytes(b"first")
+            second.write_bytes(b"second")
+            calls: list[tuple[list[str], str]] = []
+            combined_name = "3\ud559\ub144 3\ubc18 \uc804\uccb4.hwp"
+
+            original_combine = local_server.combine_hwp_files_as_sections
+            original_count_states = local_server.count_hwp_checkbox_states
+            try:
+                def fake_combine(files, output_path):
+                    calls.append(([Path(path).name for path in files], output_path.name))
+                    output_path.write_bytes(b"combined")
+                    return len(files)
+
+                def fake_count_states(path):
+                    if Path(path).name == combined_name:
+                        return {"empty": 6, "filled": 2, "total": 8}
+                    return {"empty": 3, "filled": 1, "total": 4}
+
+                local_server.combine_hwp_files_as_sections = fake_combine
+                local_server.count_hwp_checkbox_states = fake_count_states
+
+                combined = local_server.create_combined_hwp_report(
+                    [str(first), str(second)],
+                    output_dir,
+                    {"grade": "3", "class_name": "3"},
+                )
+            finally:
+                local_server.combine_hwp_files_as_sections = original_combine
+                local_server.count_hwp_checkbox_states = original_count_states
+
+            self.assertEqual(combined.name, combined_name)
+            self.assertEqual(calls, [(["01_student.hwp", "02_student.hwp"], combined_name)])
+            self.assertEqual(combined.read_bytes(), b"combined")
+
+    def test_create_combined_hwp_report_removes_output_when_checkbox_counts_do_not_match(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir)
+            first = output_dir / "01_student.hwp"
+            second = output_dir / "02_student.hwp"
+            first.write_bytes(b"first")
+            second.write_bytes(b"second")
+            combined_name = "3\ud559\ub144 3\ubc18 \uc804\uccb4.hwp"
+
+            original_combine = local_server.combine_hwp_files_as_sections
+            original_count_states = local_server.count_hwp_checkbox_states
+            try:
+                def fake_combine(files, output_path):
+                    output_path.write_bytes(b"bad combined")
+                    return len(files)
+
+                def fake_count_states(path):
+                    if Path(path).name == combined_name:
+                        return {"empty": 5, "filled": 2, "total": 7}
+                    return {"empty": 3, "filled": 1, "total": 4}
+
+                local_server.combine_hwp_files_as_sections = fake_combine
+                local_server.count_hwp_checkbox_states = fake_count_states
+
+                with self.assertRaisesRegex(ValueError, "HWP"):
+                    local_server.create_combined_hwp_report(
+                        [str(first), str(second)],
+                        output_dir,
+                        {"grade": "3", "class_name": "3"},
+                    )
+            finally:
+                local_server.combine_hwp_files_as_sections = original_combine
+                local_server.count_hwp_checkbox_states = original_count_states
+
+            self.assertFalse((output_dir / combined_name).exists())
+
     def test_report_output_dir_separates_sample_from_full_batch(self):
         self.assertEqual(report_output_dir(0).name, "hwp_reports")
         self.assertEqual(report_output_dir(1).name, "hwp_reports_sample")
@@ -1100,6 +1186,7 @@ class LocalServerMergeTest(unittest.TestCase):
             "generation_method": "direct_hwp_patch",
             "generation_fallback_reason": "old reason",
             "generated_files": ["old.hwp"],
+            "generated_combined_hwp": "all.hwp",
             "generated_zip": "old.zip",
             "students": [],
         }
@@ -1114,10 +1201,71 @@ class LocalServerMergeTest(unittest.TestCase):
             "generation_method",
             "generation_fallback_reason",
             "generated_files",
+            "generated_combined_hwp",
             "generated_zip",
         ):
             self.assertNotIn(key, payload)
         self.assertTrue(payload["ready"])
+
+    def test_generate_reports_creates_combined_hwp_for_full_batch(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            phase3_dir = temp_root / "phase3"
+            phase3_dir.mkdir()
+            manifest_path = phase3_dir / "manifest.phase3.json"
+            state_path = temp_root / "server_state.json"
+            local_server.write_json_file(
+                manifest_path,
+                {
+                    "ready": True,
+                    "expected_checkbox_count": 3,
+                    "student_placeholders": [{"find": "student"}],
+                    "school_info": {"grade": "3", "class_name": "3", "teacher_name": "teacher"},
+                    "school_info_placeholders": [{"kind": "grade_class", "find": "grade"}],
+                    "students": [{"number": "1", "name": "student", "assessments": []}],
+                },
+            )
+            local_server.write_json_file(state_path, {"current_phase3_json": str(manifest_path)})
+            combined_name = "3\ud559\ub144 3\ubc18 \uc804\uccb4.hwp"
+            combined_calls: list[tuple[list[str], str, dict]] = []
+
+            original_state_path = local_server.STATE_PATH
+            original_phase3_dir = local_server.PHASE3_DIR
+            original_run_generation = local_server.run_hwp_report_generation
+            original_create_combined = local_server.create_combined_hwp_report
+            try:
+                def fake_generation(phase3_path_arg, output_dir, limit=0):
+                    first = output_dir / "01_student.hwp"
+                    second = output_dir / "02_student.hwp"
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    first.write_bytes(b"first")
+                    second.write_bytes(b"second")
+                    return [str(first), str(second)], {"method": "direct_hwp_patch"}
+
+                def fake_create_combined(created_files, output_dir, school_info):
+                    combined_calls.append(([Path(path).name for path in created_files], output_dir.name, dict(school_info)))
+                    combined = output_dir / combined_name
+                    combined.write_bytes(b"combined")
+                    return combined
+
+                local_server.STATE_PATH = state_path
+                local_server.PHASE3_DIR = phase3_dir
+                local_server.run_hwp_report_generation = fake_generation
+                local_server.create_combined_hwp_report = fake_create_combined
+
+                local_server.generate_reports(0)
+            finally:
+                local_server.STATE_PATH = original_state_path
+                local_server.PHASE3_DIR = original_phase3_dir
+                local_server.run_hwp_report_generation = original_run_generation
+                local_server.create_combined_hwp_report = original_create_combined
+
+            payload = local_server.read_json_file(manifest_path)
+            self.assertEqual(payload["generated_mode"], "all")
+            self.assertEqual(Path(payload["generated_combined_hwp"]).name, combined_name)
+            self.assertEqual(combined_calls, [(["01_student.hwp", "02_student.hwp"], "hwp_reports", {"grade": "3", "class_name": "3", "teacher_name": "teacher"})])
+            with zipfile.ZipFile(payload["generated_zip"]) as archive:
+                self.assertEqual(sorted(archive.namelist()), ["01_student.hwp", "02_student.hwp", combined_name])
 
     def test_generate_reports_clears_stale_metadata_when_generation_fails(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1128,9 +1276,11 @@ class LocalServerMergeTest(unittest.TestCase):
             state_path = temp_root / "server_state.json"
             old_hwp = phase3_dir / "hwp_reports_sample" / "01_김대실.hwp"
             old_zip = phase3_dir / "hwp_reports_sample" / "hwp_reports.zip"
+            old_combined_hwp = phase3_dir / "hwp_reports_sample" / "all.hwp"
             old_hwp.parent.mkdir()
             old_hwp.write_bytes(b"old")
             old_zip.write_bytes(b"zip")
+            old_combined_hwp.write_bytes(b"combined")
             local_server.write_json_file(
                 manifest_path,
                 {
@@ -1146,6 +1296,7 @@ class LocalServerMergeTest(unittest.TestCase):
                     "generation_method": "direct_hwp_patch",
                     "generation_fallback_reason": "old reason",
                     "generated_files": [str(old_hwp)],
+                    "generated_combined_hwp": str(old_combined_hwp),
                     "generated_zip": str(old_zip),
                 },
             )
@@ -1169,6 +1320,7 @@ class LocalServerMergeTest(unittest.TestCase):
             payload = local_server.read_json_file(manifest_path)
             self.assertFalse(old_hwp.exists())
             self.assertFalse(old_zip.exists())
+            self.assertFalse(old_combined_hwp.exists())
             for key in (
                 "generated_at",
                 "generated_mode",
@@ -1176,6 +1328,7 @@ class LocalServerMergeTest(unittest.TestCase):
                 "generation_method",
                 "generation_fallback_reason",
                 "generated_files",
+                "generated_combined_hwp",
                 "generated_zip",
             ):
                 self.assertNotIn(key, payload)

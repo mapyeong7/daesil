@@ -12,6 +12,7 @@ from hwp_alimi.hwp5_patch import (
     count_decoded_text_occurrences,
     decode_section_stream,
     encode_section_stream,
+    ole_directory_sort_key,
     replace_decoded_text,
     same_size_utf16_replacement_bytes,
     school_info_placeholder_replacement,
@@ -48,6 +49,11 @@ class Hwp5PatchTest(unittest.TestCase):
 
         self.assertEqual(count_decoded_checkboxes(decoded), 3)
         self.assertEqual(count_decoded_checkbox_states(decoded), {"empty": 2, "filled": 1, "total": 3})
+
+    def test_ole_directory_sort_key_orders_section10_after_section9(self):
+        names = ["Section10", "Section2", "Section1", "Section9"]
+
+        self.assertEqual(sorted(names, key=ole_directory_sort_key), ["Section1", "Section2", "Section9", "Section10"])
 
     def test_counts_decoded_utf16_text_occurrences(self):
         decoded = "0번 이름: 000 / 0번 이름: 000".encode("utf-16le")

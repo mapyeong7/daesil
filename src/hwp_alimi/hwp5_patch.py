@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import shutil
 import struct
 import time
 import zlib
@@ -117,6 +118,9 @@ class OleCompoundFile:
     def read_regular_stream(self, entry: DirectoryEntry) -> bytes:
         if entry.size < MINI_STREAM_CUTOFF:
             raise ValueError(f"작은 OLE 스트림은 아직 직접 패치할 수 없습니다: {entry.name}")
+        return self._read_regular_stream_bytes(entry)
+
+    def _read_regular_stream_bytes(self, entry: DirectoryEntry) -> bytes:
         content = bytearray()
         for sector_id in self._sector_chain(entry.start_sector):
             offset = self._sector_offset(sector_id)
@@ -130,7 +134,7 @@ class OleCompoundFile:
 
     def read_mini_stream(self, entry: DirectoryEntry) -> bytes:
         root_entry = self.entry_by_name("Root Entry")
-        root_stream = self.read_regular_stream(root_entry)
+        root_stream = self._read_regular_stream_bytes(root_entry)
         mini_sector_size = self._mini_sector_size()
         content = bytearray()
         for mini_sector_id in self._mini_sector_chain(entry.start_sector):
@@ -146,6 +150,7 @@ class OleCompoundFile:
             # mini stream when the directory size is below 4096 bytes.
             stored_size = MINI_STREAM_CUTOFF
         struct.pack_into("<Q", self.data, entry.file_offset + 120, stored_size)
+        entry.size = stored_size
 
         needed_sectors = max(1, (stored_size + self.sector_size - 1) // self.sector_size)
         if len(chain) < needed_sectors:
@@ -300,7 +305,7 @@ class OleCompoundFile:
 
     def rebuild_storage_child_tree(self, storage_name: str, child_entries: list[DirectoryEntry]) -> None:
         storage = self.entry_by_name(storage_name)
-        ordered = sorted(child_entries, key=lambda entry: entry.name.casefold())
+        ordered = sorted(child_entries, key=lambda entry: ole_directory_sort_key(entry.name))
 
         def attach(entries: list[DirectoryEntry]) -> int:
             if not entries:
@@ -353,6 +358,12 @@ def section_number(name: str) -> int:
     return int(match.group(1)) if match else -1
 
 
+def ole_directory_sort_key(name: str) -> tuple[int, str]:
+    # Compound File directory sibling trees are ordered by name length first,
+    # then by case-insensitive name. This matters once Section10 appears.
+    return (len(name), name.casefold())
+
+
 def count_decoded_checkboxes(decoded: bytes | bytearray) -> int:
     empty_box = "□".encode("utf-16le")
     filled_box = "■".encode("utf-16le")
@@ -381,6 +392,54 @@ def body_text_sections(ole: OleCompoundFile) -> list[DirectoryEntry]:
     if not sections:
         raise ValueError("HWP 본문 Section 스트림을 찾지 못했습니다.")
     return sections
+
+
+def set_document_section_count(ole: OleCompoundFile, section_count: int) -> None:
+    docinfo_entry = ole.entry_by_name("DocInfo")
+    raw = ole.read_stream(docinfo_entry)
+    decoded, compressed = decode_section_stream(raw)
+    if len(decoded) < 6:
+        raise ValueError("HWP DocInfo 스트림이 너무 짧습니다.")
+    header = struct.unpack_from("<I", decoded, 0)[0]
+    tag = header & 0x3FF
+    size = (header >> 20) & 0xFFF
+    payload_offset = 4
+    if size == 0xFFF:
+        payload_offset += 4
+    if tag != 16:
+        raise ValueError("HWP DocInfo 첫 레코드가 문서 속성이 아닙니다.")
+    struct.pack_into("<H", decoded, payload_offset, section_count)
+    ole.write_stream(docinfo_entry, encode_section_stream(decoded, compressed))
+
+
+def combine_hwp_files_as_sections(source_files: list[Path], output_path: Path) -> int:
+    sources = [Path(path) for path in source_files]
+    if not sources:
+        raise ValueError("합칠 HWP 파일이 없습니다.")
+    for source in sources:
+        if not source.exists() or source.suffix.lower() != ".hwp":
+            raise ValueError(f"합칠 수 없는 HWP 파일입니다: {source}")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(sources[0], output_path)
+
+    output_ole = OleCompoundFile(output_path)
+    output_sections = body_text_sections(output_ole)
+    section_entries = list(output_sections)
+    next_section_number = max(section_number(entry.name) for entry in section_entries) + 1
+
+    for source in sources[1:]:
+        source_ole = OleCompoundFile(source)
+        for section_entry in body_text_sections(source_ole):
+            raw = source_ole.read_stream(section_entry)
+            new_entry = output_ole.add_regular_stream_entry(f"Section{next_section_number}", raw)
+            section_entries.append(new_entry)
+            next_section_number += 1
+
+    output_ole.rebuild_storage_child_tree("BodyText", section_entries)
+    set_document_section_count(output_ole, len(section_entries))
+    output_ole.write_back()
+    return len(section_entries)
 
 
 def count_hwp_checkboxes(hwp_path: Path) -> int:

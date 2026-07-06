@@ -35,6 +35,7 @@ from hwp_alimi.phase3 import (
     normalize_school_info,
 )
 from hwp_alimi.hwp5_patch import (
+    combine_hwp_files_as_sections,
     count_hwp_checkbox_states,
     count_hwp_text_occurrences,
     patch_hwp_checkboxes,
@@ -1295,6 +1296,40 @@ def create_reports_zip(created_files: list[str], output_dir: Path) -> Path | Non
     return zip_path
 
 
+def combined_report_base_name(school_info: dict | None) -> str:
+    info = normalize_school_info(school_info)
+    grade = info.get("grade")
+    class_name = info.get("class_name")
+    if grade and class_name:
+        return safe_name(f"{grade}학년 {class_name}반 전체")
+    if grade:
+        return safe_name(f"{grade}학년 전체")
+    return safe_name("전체 학생")
+
+
+def create_combined_hwp_report(created_files: list[str], output_dir: Path, school_info: dict | None) -> Path | None:
+    files = [Path(path) for path in created_files if Path(path).exists()]
+    if not files:
+        return None
+
+    output_path = output_dir / f"{combined_report_base_name(school_info)}.hwp"
+    combine_hwp_files_as_sections(files, output_path)
+
+    expected = {"empty": 0, "filled": 0, "total": 0}
+    for file_path in files:
+        states = count_hwp_checkbox_states(file_path)
+        for key in expected:
+            expected[key] += states[key]
+    actual = count_hwp_checkbox_states(output_path)
+    if actual != expected:
+        output_path.unlink(missing_ok=True)
+        raise ValueError(
+            f"전체 학생 HWP 체크박스 수가 맞지 않습니다. 기대 {expected['total']}개/"
+            f"표시 {expected['filled']}개, 실제 {actual['total']}개/표시 {actual['filled']}개"
+        )
+    return output_path
+
+
 def report_output_dir(limit: int = 0) -> Path:
     return PHASE3_DIR / ("hwp_reports_sample" if limit > 0 else "hwp_reports")
 
@@ -1307,6 +1342,7 @@ def clear_phase3_generation_metadata(phase3_payload: dict) -> dict:
         "generation_method",
         "generation_fallback_reason",
         "generated_files",
+        "generated_combined_hwp",
         "generated_zip",
     ):
         phase3_payload.pop(key, None)
@@ -1353,8 +1389,21 @@ def generate_reports(limit: int = 0) -> dict:
     clear_report_output_files(output_dir)
     clear_phase3_generation_metadata(phase3_payload)
     write_json_file(phase3_path, phase3_payload)
-    created_files, generation_info = run_hwp_report_generation(phase3_path, output_dir, limit)
-    zip_path = create_reports_zip(created_files, output_dir)
+    try:
+        created_files, generation_info = run_hwp_report_generation(phase3_path, output_dir, limit)
+        combined_hwp_path = None
+        if limit == 0:
+            combined_hwp_path = create_combined_hwp_report(
+                created_files,
+                output_dir,
+                phase3_payload.get("school_info"),
+            )
+        zip_files = created_files + ([str(combined_hwp_path)] if combined_hwp_path else [])
+        zip_path = create_reports_zip(zip_files, output_dir)
+    except Exception:
+        clear_report_output_files(output_dir)
+        raise
+
     phase3_payload["generated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     phase3_payload["generated_mode"] = "sample" if limit > 0 else "all"
     phase3_payload["generated_limit"] = limit
@@ -1364,6 +1413,7 @@ def generate_reports(limit: int = 0) -> dict:
     else:
         phase3_payload.pop("generation_fallback_reason", None)
     phase3_payload["generated_files"] = created_files
+    phase3_payload["generated_combined_hwp"] = str(combined_hwp_path) if combined_hwp_path else None
     phase3_payload["generated_zip"] = str(zip_path) if zip_path else None
     write_json_file(phase3_path, phase3_payload)
     return get_results()
@@ -1411,7 +1461,21 @@ def phase3_for_response(phase3_path: Path | None) -> dict | None:
         )
     payload["generated_file_links"] = generated_links
 
+    generated_combined_hwp = Path(payload["generated_combined_hwp"]) if payload.get("generated_combined_hwp") else None
+    generated_combined_url = relative_url(generated_combined_hwp) if generated_combined_hwp and generated_combined_hwp.exists() else None
+    payload["generated_combined_hwp_link"] = (
+        {
+            "name": generated_combined_hwp.name,
+            "path": str(generated_combined_hwp),
+            "url": generated_combined_url,
+        }
+        if generated_combined_url
+        else None
+    )
+
     generated_output_dir = Path(generated_links[0]["path"]).parent if generated_links else None
+    if not generated_output_dir and generated_combined_hwp and generated_combined_hwp.exists():
+        generated_output_dir = generated_combined_hwp.parent
     output_dir_url = relative_url(generated_output_dir) if generated_output_dir else None
     payload["generated_output_dir"] = str(generated_output_dir) if generated_output_dir else None
     payload["generated_output_dir_url"] = output_dir_url if generated_output_dir and generated_output_dir.exists() else None
