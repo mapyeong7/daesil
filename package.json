@@ -8,6 +8,7 @@
     "electron": "electron .",
     "electron:dev": "electron .",
     "package:electron": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/package_electron.ps1",
+    "package:electron:python": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/package_electron.ps1 -OutputRoot ./dist/electron-python-included -BundlePython -CreateZip",
     "check:electron": "node --check electron/main.js"
   },
   "devDependencies": {
