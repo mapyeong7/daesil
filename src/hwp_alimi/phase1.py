@@ -104,6 +104,31 @@ def compact_label(value: str) -> str:
     return re.sub(r"\s+", "", str(value or "").strip())
 
 
+def subject_lookup_key(value: str) -> str:
+    return re.sub(r"[\s·ㆍ‧쨌]+", "", str(value or "").strip())
+
+
+def canonical_subject_name(value: str) -> str | None:
+    key = subject_lookup_key(value)
+    if not key:
+        return None
+    for subject in SUBJECT_NAMES:
+        if subject_lookup_key(subject) == key:
+            return subject
+    return None
+
+
+def is_subject_line(value: str) -> bool:
+    return canonical_subject_name(value) is not None
+
+
+TABLE_HEADER_KEYS = {"교과", "과목", "영역", "평가요소", "평가내용", "성취수준"}
+
+
+def is_table_header_line(value: str) -> bool:
+    return compact_label(value) in TABLE_HEADER_KEYS
+
+
 def canonical_status_label(value: str) -> str | None:
     compact = compact_label(value)
     for label in STATUS_LABELS:
@@ -190,15 +215,24 @@ def find_block_start_before_reached(
     current_subject: str | None,
     current_area: str | None,
 ) -> int:
-    subject_search_start = max(lower_bound, reached_index - 8)
+    subject_search_start = max(lower_bound, reached_index - 12)
     for index in range(subject_search_start, reached_index - 2):
-        if lines[index] in SUBJECT_NAMES:
+        if is_subject_line(lines[index]):
             return index
-    if current_subject and reached_index - 2 >= lower_bound:
-        if looks_like_area_line(lines[reached_index - 2]):
-            return reached_index - 2
-        if current_area and reached_index - 1 >= lower_bound:
-            return reached_index - 1
+
+    if current_subject:
+        useful_indices = [
+            index
+            for index in range(lower_bound, reached_index)
+            if not is_table_header_line(lines[index])
+        ]
+        if len(useful_indices) >= 3 and looks_like_area_line(lines[useful_indices[-3]]) and looks_like_area_line(lines[useful_indices[-2]]):
+            return useful_indices[-3]
+        if len(useful_indices) >= 2 and looks_like_area_line(lines[useful_indices[-2]]):
+            return useful_indices[-2]
+        if current_area and useful_indices:
+            return useful_indices[-1]
+
     if reached_index - 3 >= lower_bound:
         return reached_index - 3
     return lower_bound
@@ -218,18 +252,28 @@ def find_next_block_start(
     return find_block_start_before_reached(lines, next_reached, start, current_subject, current_area)
 
 
+def joyful_life_subject_for_missing_cell(subject: str, evaluation_element: str) -> str:
+    if subject != "슬기로운 생활":
+        return subject
+    joyful_keywords = ("놀이", "나타내기", "노래", "만들기", "꾸미기", "그리기", "표현하기")
+    if any(keyword in evaluation_element for keyword in joyful_keywords):
+        return "즐거운 생활"
+    return subject
+
+
 def parse_preamble(
     preamble: Iterable[str],
     current_subject: str | None = None,
     current_area: str | None = None,
 ) -> tuple[str, str, str]:
-    parts = [part.strip() for part in preamble if part.strip()]
+    parts = [part.strip() for part in preamble if part.strip() and not is_table_header_line(part)]
     if not parts:
         raise ValueError(f"평가 블록 시작 부분이 너무 짧습니다: {parts}")
-    if parts[0] in SUBJECT_NAMES:
+    explicit_subject = canonical_subject_name(parts[0])
+    if explicit_subject:
         if len(parts) < 3:
             raise ValueError(f"평가 블록 시작 부분이 너무 짧습니다: {parts}")
-        subject = parts[0]
+        subject = explicit_subject
         body = parts[1:]
     elif current_subject:
         subject = current_subject
@@ -240,13 +284,15 @@ def parse_preamble(
         else:
             raise ValueError(f"평가 블록 시작 부분이 너무 짧습니다: {parts}")
     elif len(parts) >= 3:
-        subject = parts[0]
+        subject = canonical_subject_name(parts[0]) or parts[0]
         body = parts[1:]
     else:
         raise ValueError(f"평가 블록 시작 부분이 너무 짧습니다: {parts}")
 
     evaluation_element = body[-1]
     area = "".join(body[:-1]).strip()
+    if not explicit_subject:
+        subject = joyful_life_subject_for_missing_cell(subject, evaluation_element)
     return subject, area, evaluation_element
 
 
