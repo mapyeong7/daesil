@@ -16,6 +16,19 @@
 
 ## 실행
 
+Electron 데스크톱 앱으로 실행:
+
+```powershell
+npm install
+npm run electron
+```
+
+또는 개발 폴더에서 아래 파일을 더블클릭합니다.
+
+```text
+start_electron.bat
+```
+
 더블클릭 실행:
 
 ```text
@@ -50,6 +63,15 @@ http://127.0.0.1:8765/
 6. 문제가 없으면 `2.HWP 파일 생성`으로 학생별 HWP, 전체 학생 HWP, ZIP을 만듭니다.
 
 ## 로컬 패키징
+
+Electron 데스크톱 앱 패키징:
+
+```powershell
+npm run package:electron
+```
+
+생성된 `dist\electron\HwpAlimi-win32-x64\HwpAlimi.exe`를 실행하면 별도 브라우저 대신 앱 창에서 열립니다.
+Electron 앱도 내부적으로는 Python 로컬 서버를 자동 실행하고, 창을 닫으면 함께 종료합니다.
 
 배포용 폴더와 ZIP 파일 생성:
 

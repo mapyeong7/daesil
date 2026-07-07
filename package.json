@@ -1,0 +1,17 @@
+{
+  "name": "hwp-alimi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HWP Alimi local desktop app",
+  "main": "electron/main.js",
+  "scripts": {
+    "electron": "electron .",
+    "electron:dev": "electron .",
+    "package:electron": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/package_electron.ps1",
+    "check:electron": "node --check electron/main.js"
+  },
+  "devDependencies": {
+    "@electron/packager": "latest",
+    "electron": "latest"
+  }
+}

@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from typing import Any
 
-from hwp_alimi.hwp5_patch import count_hwp_checkboxes
+from hwp_alimi.hwp5_patch import count_hwp_checkboxes, find_hwp_teacher_story_slot
 from hwp_alimi.io_utils import atomic_write_json
 from hwp_alimi.phase1 import read_text_file
 
@@ -121,6 +121,72 @@ def normalize_school_info(school_info: dict | None) -> dict:
         "class_name": str(school_info.get("class_name") or school_info.get("class") or "").strip(),
         "teacher_name": str(school_info.get("teacher_name") or school_info.get("teacher") or "").strip(),
     }
+
+
+def compact_student_name(name: str) -> str:
+    return re.sub(r"\s+", "", str(name or "").strip())
+
+
+def student_story_key(student: dict) -> str:
+    number = str(student.get("number") or "").strip()
+    name = str(student.get("name") or "").strip()
+    return number or (f"name:{compact_student_name(name)}" if name else "")
+
+
+def normalize_student_stories(stories: object) -> list[dict]:
+    if not isinstance(stories, list):
+        return []
+    normalized: list[dict] = []
+    for item in stories:
+        if not isinstance(item, dict):
+            continue
+        number = str(item.get("number") or "").strip()
+        name = str(item.get("name") or "").strip()
+        common_story = " ".join(str(item.get("common_story") or "").split())
+        individual_story = " ".join(str(item.get("individual_story") or "").split())
+        if not number and not name and not common_story and not individual_story:
+            continue
+        normalized.append(
+            {
+                "number": number,
+                "name": name,
+                "common_story": common_story,
+                "individual_story": individual_story,
+            }
+        )
+    return normalized
+
+
+def student_story_lookup(stories: object) -> dict[str, dict]:
+    result: dict[str, dict] = {}
+    for story in normalize_student_stories(stories):
+        key = student_story_key(story)
+        if key:
+            result[key] = story
+    return result
+
+
+def compose_teacher_story(common_story: object = "", individual_story: object = "") -> str:
+    parts = [
+        " ".join(str(common_story or "").split()),
+        " ".join(str(individual_story or "").split()),
+    ]
+    text = " ".join(part for part in parts if part).strip()
+    return f"  {text}" if text else ""
+
+
+def teacher_story_slot_from_phase1(phase1_payload: dict | None) -> dict | None:
+    payload = phase1_payload or {}
+    slot = payload.get("teacher_story_slot")
+    if isinstance(slot, dict):
+        return slot
+    source_hwp = Path(str(payload.get("source_hwp") or ""))
+    if source_hwp.exists() and source_hwp.suffix.lower() == ".hwp":
+        try:
+            return find_hwp_teacher_story_slot(source_hwp)
+        except Exception:
+            return None
+    return None
 
 
 def find_school_info_placeholders(text: str) -> list[dict]:
@@ -481,7 +547,15 @@ def validate_phase3_inputs(
     return issues
 
 
-def build_student_output(student: dict, blocks: dict[int, dict], checkbox_ordinals: dict[int, dict[str, int]]) -> dict:
+def build_student_output(
+    student: dict,
+    blocks: dict[int, dict],
+    checkbox_ordinals: dict[int, dict[str, int]],
+    story_lookup: dict[str, dict] | None = None,
+) -> dict:
+    story = (story_lookup or {}).get(student_story_key(student), {})
+    common_story = str(story.get("common_story") or "").strip()
+    individual_story = str(story.get("individual_story") or "").strip()
     assessments: list[dict[str, Any]] = []
     for assessment in student.get("assessments", []):
         block_index = int(assessment.get("block_index", 0))
@@ -509,6 +583,9 @@ def build_student_output(student: dict, blocks: dict[int, dict], checkbox_ordina
         "source_row": student.get("source_row"),
         "number": str(student.get("number", "")).strip(),
         "name": str(student.get("name", "")).strip(),
+        "common_story": common_story,
+        "individual_story": individual_story,
+        "teacher_story": compose_teacher_story(common_story, individual_story),
         "assessments": sorted(assessments, key=lambda item: item["block_index"]),
     }
 
@@ -520,6 +597,7 @@ def build_phase3_payload(
     phase2_payload: dict | None,
     output_dir: Path,
     school_info: dict | None = None,
+    student_stories: object = None,
 ) -> dict:
     normalized_school_info = normalize_school_info(school_info)
     blocking_issues = validate_phase3_inputs(
@@ -531,11 +609,13 @@ def build_phase3_payload(
     )
     blocks = phase1_blocks_by_index(phase1_payload or {})
     checkbox_ordinals = checkbox_ordinals_by_block(phase1_payload or {})
+    stories_by_key = student_story_lookup(student_stories)
     students = [
-        build_student_output(student, blocks, checkbox_ordinals)
+        build_student_output(student, blocks, checkbox_ordinals, stories_by_key)
         for student in (phase2_payload or {}).get("students", [])
     ]
     source_hwp = str((phase1_payload or {}).get("source_hwp") or "")
+    teacher_story_slot = teacher_story_slot_from_phase1(phase1_payload)
     return {
         "source_phase1_json": str(phase1_path),
         "source_phase2_json": str(phase2_path) if phase2_path else None,
@@ -543,6 +623,7 @@ def build_phase3_payload(
         "student_placeholders": student_placeholders_from_phase1(phase1_payload),
         "school_info": normalized_school_info,
         "school_info_placeholders": school_info_placeholders_from_phase1(phase1_payload),
+        "teacher_story_slot": teacher_story_slot,
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "ready": not blocking_issues,
         "blocking_issues": blocking_issues,

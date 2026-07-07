@@ -4,6 +4,7 @@ import argparse
 import copy
 import json
 import mimetypes
+import os
 import re
 import shutil
 import subprocess
@@ -33,16 +34,23 @@ from hwp_alimi.phase2 import (
 from hwp_alimi.phase3 import (
     build_phase3_payload,
     default_output_path as default_phase3_output_path,
+    normalize_student_stories,
     normalize_school_info,
+    teacher_story_slot_from_phase1,
 )
 from hwp_alimi.hwp5_patch import (
     combine_hwp_files_as_sections,
     count_hwp_checkbox_states,
     count_hwp_text_occurrences,
+    find_hwp_teacher_story_slot,
+    find_hwp_school_info_placeholders,
+    find_hwp_student_placeholders,
     patch_hwp_checkboxes,
     patch_hwp_school_info_placeholders,
     patch_hwp_student_placeholders,
+    patch_hwp_teacher_story,
     student_placeholder_replacement,
+    teacher_story_cleanup_find_text,
 )
 from hwp_alimi.io_utils import atomic_write_json
 
@@ -123,6 +131,34 @@ def normalize_student_roster(roster: object) -> list[dict]:
     return sorted(normalized, key=student_sort_key)
 
 
+def sync_student_stories_with_roster(stories: object, roster: list[dict]) -> list[dict]:
+    normalized_stories = normalize_student_stories(stories)
+    by_number = {
+        str(item.get("number") or "").strip(): item
+        for item in normalized_stories
+        if str(item.get("number") or "").strip()
+    }
+    by_name = {
+        compact_student_name(str(item.get("name") or "")): item
+        for item in normalized_stories
+        if compact_student_name(str(item.get("name") or ""))
+    }
+    synced: list[dict] = []
+    for student in normalize_student_roster(roster):
+        number = str(student.get("number") or "").strip()
+        name = str(student.get("name") or "").strip()
+        story = by_number.get(number) or by_name.get(compact_student_name(name)) or {}
+        synced.append(
+            {
+                "number": number,
+                "name": name,
+                "common_story": str(story.get("common_story") or "").strip(),
+                "individual_story": str(story.get("individual_story") or "").strip(),
+            }
+        )
+    return synced
+
+
 def validate_student_roster(roster: list[dict]) -> list[dict]:
     normalized = normalize_student_roster(roster)
     if not normalized:
@@ -166,12 +202,17 @@ def read_state() -> dict:
     if state:
         state["school_info"] = normalize_school_info(state.get("school_info"))
         state["student_roster"] = normalize_student_roster(state.get("student_roster"))
+        state["student_stories"] = sync_student_stories_with_roster(
+            state.get("student_stories"),
+            state.get("student_roster"),
+        )
         return state
     return {
         "current_phase1_json": str(SAMPLE_PHASE1) if SAMPLE_PHASE1.exists() else None,
         "current_phase2_json": str(SAMPLE_PHASE2) if SAMPLE_PHASE2.exists() else None,
         "school_info": normalize_school_info(None),
         "student_roster": [],
+        "student_stories": [],
     }
 
 
@@ -1255,6 +1296,7 @@ def prepare_reports() -> dict:
         phase2_payload,
         PHASE3_DIR,
         school_info,
+        state.get("student_stories"),
     )
     write_json_file(output_path, phase3_payload)
     state["current_phase3_json"] = str(output_path)
@@ -1288,8 +1330,19 @@ def save_school_info(payload: dict) -> dict:
         )
     state["school_info"] = normalize_school_info(payload)
     state["student_roster"] = next_roster
+    state["student_stories"] = sync_student_stories_with_roster(state.get("student_stories"), next_roster)
     if not rosters_equal(previous_roster, next_roster):
         state["current_phase2_json"] = None
+    state["current_phase3_json"] = None
+    write_state(state)
+    return get_results()
+
+
+def save_student_stories(payload: dict) -> dict:
+    state = read_state()
+    roster = validate_student_roster(state.get("student_roster") or [])
+    stories = payload.get("student_stories") or payload.get("stories") or []
+    state["student_stories"] = sync_student_stories_with_roster(stories, roster)
     state["current_phase3_json"] = None
     write_state(state)
     return get_results()
@@ -1327,6 +1380,39 @@ def report_checkbox_ordinals(student: dict) -> list[int]:
     return ordinals
 
 
+def generation_student_placeholders(manifest_payload: dict, source_hwp: Path) -> list[dict]:
+    placeholders = list(manifest_payload.get("student_placeholders") or [])
+    seen = {str(placeholder.get("find") or "") for placeholder in placeholders}
+    try:
+        for placeholder in find_hwp_student_placeholders(source_hwp):
+            find = str(placeholder.get("find") or "")
+            if not find or find in seen:
+                continue
+            placeholders.append(placeholder)
+            seen.add(find)
+    except Exception:
+        pass
+    return placeholders
+
+
+def generation_school_info_placeholders(manifest_payload: dict, source_hwp: Path) -> list[dict]:
+    placeholders = list(manifest_payload.get("school_info_placeholders") or [])
+    seen = {
+        (str(placeholder.get("kind") or ""), str(placeholder.get("find") or ""))
+        for placeholder in placeholders
+    }
+    try:
+        for placeholder in find_hwp_school_info_placeholders(source_hwp):
+            key = (str(placeholder.get("kind") or ""), str(placeholder.get("find") or ""))
+            if not key[1] or key in seen:
+                continue
+            placeholders.append(placeholder)
+            seen.add(key)
+    except Exception:
+        pass
+    return placeholders
+
+
 def validate_direct_generated_hwp(
     output_path: Path,
     manifest_payload: dict,
@@ -1352,11 +1438,22 @@ def validate_direct_generated_hwp(
     for placeholder in placeholders:
         replacement = student_placeholder_replacement(placeholder, student.get("number"), student.get("name"))
         replacement_hits += count_hwp_text_occurrences(output_path, replacement)
-        placeholder_hits += count_hwp_text_occurrences(output_path, str(placeholder.get("find") or ""))
+        find_text = str(placeholder.get("find") or "")
+        if find_text and find_text != replacement:
+            placeholder_hits += count_hwp_text_occurrences(output_path, find_text)
     if replacement_hits <= 0:
         raise ValueError(f"생성 HWP에서 학생 이름 치환 결과를 확인하지 못했습니다: {output_path.name}")
     if placeholder_hits:
         raise ValueError(f"생성 HWP에 학생 이름 자리표시자가 남아 있습니다: {output_path.name}")
+
+    teacher_story_slot = manifest_payload.get("teacher_story_slot") if isinstance(manifest_payload.get("teacher_story_slot"), dict) else None
+    if teacher_story_slot:
+        example_text = str(teacher_story_slot.get("example_text") or "").strip()
+        story_text = str(student.get("teacher_story") or "").strip()
+        if example_text and example_text != story_text and count_hwp_text_occurrences(output_path, example_text):
+            raise ValueError(f"생성 HWP에 선생님의 이야기 예시 문장이 남아 있습니다: {output_path.name}")
+        if story_text and count_hwp_text_occurrences(output_path, story_text) <= 0:
+            raise ValueError(f"생성 HWP에서 선생님의 이야기 문장을 확인하지 못했습니다: {output_path.name}")
 
 
 def run_hwp_report_generation_direct(manifest_payload: dict, output_dir: Path, limit: int = 0) -> list[str]:
@@ -1366,11 +1463,13 @@ def run_hwp_report_generation_direct(manifest_payload: dict, output_dir: Path, l
     if not source_hwp.exists():
         raise ValueError("원본 HWP 파일을 찾지 못했습니다.")
 
-    placeholders = list(manifest_payload.get("student_placeholders") or [])
+    source_hwp = Path(str(manifest_payload.get("source_hwp") or ""))
+    placeholders = generation_student_placeholders(manifest_payload, source_hwp)
     if not placeholders:
         raise ValueError("학생 이름 자리표시자 정보가 없어 직접 HWP 패치를 사용할 수 없습니다.")
     school_info = normalize_school_info(manifest_payload.get("school_info"))
-    school_placeholders = list(manifest_payload.get("school_info_placeholders") or [])
+    school_placeholders = generation_school_info_placeholders(manifest_payload, source_hwp)
+    teacher_story_slot = manifest_payload.get("teacher_story_slot") if isinstance(manifest_payload.get("teacher_story_slot"), dict) else None
 
     output_dir.mkdir(parents=True, exist_ok=True)
     students = list(manifest_payload.get("students") or [])
@@ -1397,6 +1496,14 @@ def run_hwp_report_generation_direct(manifest_payload: dict, output_dir: Path, l
                 school_replacements = patch_hwp_school_info_placeholders(output_path, school_placeholders, school_info)
                 if school_replacements <= 0:
                     raise ValueError(f"HWP 기본 정보 자리표시자를 직접 패치하지 못했습니다: {output_path.name}")
+            if teacher_story_slot:
+                story_replacements = patch_hwp_teacher_story(
+                    output_path,
+                    teacher_story_slot,
+                    str(student.get("teacher_story") or ""),
+                )
+                if story_replacements <= 0:
+                    raise ValueError(f"HWP 선생님의 이야기 문단을 직접 패치하지 못했습니다: {output_path.name}")
             checkbox_ordinals = report_checkbox_ordinals(student)
             patch_hwp_checkboxes(output_path, checkbox_ordinals)
             validate_direct_generated_hwp(output_path, manifest_payload, student, placeholders, checkbox_ordinals)
@@ -1413,15 +1520,28 @@ def run_hwp_report_generation_direct(manifest_payload: dict, output_dir: Path, l
     return created_files
 
 
-def run_hwp_report_generation(manifest_path: Path, output_dir: Path, limit: int = 0) -> tuple[list[str], dict]:
-    manifest_payload = read_json_file(manifest_path) or {}
-    try:
-        created_files = run_hwp_report_generation_direct(manifest_payload, output_dir, limit)
-        return created_files, {"method": "direct_hwp_patch"}
-    except Exception as direct_exc:
-        clear_report_output_files(output_dir)
-        fallback_reason = str(direct_exc)
+def manifest_with_current_hwp_placeholders(manifest_payload: dict) -> dict:
+    payload = dict(manifest_payload)
+    source_hwp = Path(str(payload.get("source_hwp") or ""))
+    payload["student_placeholders"] = generation_student_placeholders(payload, source_hwp)
+    payload["school_info_placeholders"] = generation_school_info_placeholders(payload, source_hwp)
+    if isinstance(payload.get("teacher_story_slot"), dict):
+        try:
+            current_slot = find_hwp_teacher_story_slot(source_hwp)
+            if current_slot:
+                payload["teacher_story_slot"] = current_slot
+        except Exception:
+            pass
+    return payload
 
+
+def run_hwp_report_generation_com(
+    manifest_path: Path,
+    manifest_payload: dict,
+    output_dir: Path,
+    limit: int,
+    fallback_reason: str,
+) -> tuple[list[str], dict]:
     script_path = PROJECT_ROOT / "scripts" / "generate_hwp_reports.ps1"
     command = [
         "powershell.exe",
@@ -1449,20 +1569,133 @@ def run_hwp_report_generation(manifest_path: Path, output_dir: Path, limit: int 
 
     try:
         validate_created_files(created_files, len(students))
-        placeholders = list(manifest_payload.get("student_placeholders") or [])
+        source_hwp = Path(str(manifest_payload.get("source_hwp") or ""))
+        placeholders = generation_student_placeholders(manifest_payload, source_hwp)
+        teacher_story_slot = manifest_payload.get("teacher_story_slot") if isinstance(manifest_payload.get("teacher_story_slot"), dict) else None
         for output_path, student in zip(created_files, students):
             checkbox_ordinals = report_checkbox_ordinals(student)
             output_hwp = Path(output_path)
+            if teacher_story_slot:
+                story_replacements = patch_hwp_teacher_story(
+                    output_hwp,
+                    teacher_story_slot,
+                    str(student.get("teacher_story") or ""),
+                )
+                if story_replacements <= 0:
+                    raise ValueError(f"HWP teacher story direct patch failed: {output_hwp.name}")
             patch_hwp_checkboxes(output_hwp, checkbox_ordinals)
             if placeholders:
                 validate_direct_generated_hwp(output_hwp, manifest_payload, student, placeholders, checkbox_ordinals)
     except Exception:
         clear_report_output_files(output_dir)
         raise
+    cleanup_replacements = teacher_story_cleanup_replacements(manifest_payload, created_files, limit)
+    resave_hwp_files_with_com(created_files, cleanup_replacements)
     return created_files, {
         "method": "hwp_com_fallback",
         "fallback_reason": fallback_reason,
     }
+
+
+def teacher_story_cleanup_replacements(
+    manifest_payload: dict,
+    created_files: list[str],
+    limit: int = 0,
+) -> dict[str, list[dict[str, str]]]:
+    slot = manifest_payload.get("teacher_story_slot") if isinstance(manifest_payload.get("teacher_story_slot"), dict) else None
+    if not slot:
+        return {}
+    template_text = str(slot.get("find_text") or slot.get("example_text") or "")
+    if not template_text:
+        return {}
+    students = list(manifest_payload.get("students") or [])
+    if limit:
+        students = students[:limit]
+    replacements: dict[str, list[dict[str, str]]] = {}
+    for output_path, student in zip(created_files, students):
+        story_text = str(student.get("teacher_story") or "")
+        padded_find = teacher_story_cleanup_find_text(story_text, template_text)
+        if padded_find:
+            replacements[str(Path(output_path))] = [{"find": padded_find, "replace": story_text}]
+    return replacements
+
+
+def resave_hwp_files_with_com(
+    paths: list[str | Path],
+    text_replacements: dict[str, list[dict[str, str]]] | None = None,
+) -> list[str]:
+    files = [str(Path(path)) for path in paths if Path(path).exists()]
+    if not files:
+        return []
+
+    script_path = PROJECT_ROOT / "scripts" / "resave_hwp_files.ps1"
+    if not script_path.exists():
+        raise RuntimeError("HWP finalizing script was not found.")
+
+    replacements = text_replacements or {}
+    path_payload: list[object] = []
+    for file_path in files:
+        file_replacements = replacements.get(file_path) or replacements.get(str(Path(file_path).resolve())) or []
+        if replacements:
+            path_payload.append({"path": file_path, "replacements": file_replacements})
+        else:
+            path_payload.append(file_path)
+
+    list_path = Path(files[0]).parent / "_hwp_resave_paths.json"
+    write_json_file(list_path, path_payload)
+    command = [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(script_path),
+        "-PathListJson",
+        str(list_path),
+    ]
+    try:
+        completed = subprocess.run(command, text=True, capture_output=True, encoding="utf-8", errors="replace")
+        if completed.returncode != 0:
+            detail = completed.stderr.strip() or completed.stdout.strip()
+            raise RuntimeError(f"HWP final save failed.\n{detail}")
+        return [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    finally:
+        try:
+            list_path.unlink()
+        except OSError:
+            pass
+
+
+def hwp_com_fallback_enabled() -> bool:
+    value = os.environ.get("HWP_ALIMI_ENABLE_COM_FALLBACK", "")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def run_hwp_report_generation(manifest_path: Path, output_dir: Path, limit: int = 0) -> tuple[list[str], dict]:
+    manifest_payload = read_json_file(manifest_path) or {}
+    try:
+        created_files = run_hwp_report_generation_direct(manifest_payload, output_dir, limit)
+        cleanup_replacements = teacher_story_cleanup_replacements(manifest_payload, created_files, limit)
+        resave_hwp_files_with_com(created_files, cleanup_replacements)
+        return created_files, {"method": "direct_hwp_patch"}
+    except Exception as direct_exc:
+        clear_report_output_files(output_dir)
+        direct_error = direct_exc
+        fallback_reason = str(direct_exc)
+
+    if not hwp_com_fallback_enabled():
+        raise RuntimeError(f"HWP 직접 출력 생성에 실패했습니다.\n{fallback_reason}") from direct_error
+
+    com_manifest_payload = manifest_with_current_hwp_placeholders(manifest_payload)
+    com_manifest_path = output_dir / "_hwp_com_manifest.json"
+    write_json_file(com_manifest_path, com_manifest_payload)
+    try:
+        return run_hwp_report_generation_com(com_manifest_path, com_manifest_payload, output_dir, limit, fallback_reason)
+    finally:
+        try:
+            com_manifest_path.unlink()
+        except OSError:
+            pass
 
 
 def validate_created_files(created_files: list[str], expected_count: int) -> None:
@@ -1541,6 +1774,7 @@ def create_combined_hwp_report(created_files: list[str], output_dir: Path, schoo
             f"전체 학생 HWP 체크박스 수가 맞지 않습니다. 기대 {expected['total']}개/"
             f"표시 {expected['filled']}개, 실제 {actual['total']}개/표시 {actual['filled']}개"
         )
+    resave_hwp_files_with_com([output_path])
     return output_path
 
 
@@ -1570,7 +1804,11 @@ def phase3_needs_refresh(phase3_payload: dict) -> bool:
         return True
     if "school_info" not in phase3_payload or "school_info_placeholders" not in phase3_payload:
         return True
+    if "teacher_story_slot" not in phase3_payload:
+        return True
     for student in phase3_payload.get("students", []):
+        if "teacher_story" not in student:
+            return True
         for assessment in student.get("assessments", []):
             if assessment.get("should_mark") and not assessment.get("checkbox_ordinal"):
                 return True
@@ -1716,7 +1954,12 @@ def get_results() -> dict:
     phase1_payload = read_json_file(phase1_path)
     if not phase1_payload:
         phase1_path = None
+    elif "teacher_story_slot" not in phase1_payload:
+        teacher_story_slot = teacher_story_slot_from_phase1(phase1_payload)
+        if teacher_story_slot:
+            phase1_payload["teacher_story_slot"] = teacher_story_slot
     student_roster = normalize_student_roster(state.get("student_roster"))
+    student_stories = sync_student_stories_with_roster(state.get("student_stories"), student_roster)
 
     phase2_payload = read_json_file(phase2_path)
     if not (
@@ -1747,6 +1990,8 @@ def get_results() -> dict:
         "phase3": phase3_payload,
         "school_info": normalize_school_info(state.get("school_info")),
         "student_roster": student_roster,
+        "student_stories": student_stories,
+        "teacher_story_slot": (phase1_payload or {}).get("teacher_story_slot"),
         "paths": {
             "phase1_json": existing_relative_url(phase1_path),
             "phase2_json": existing_relative_url(phase2_path),
@@ -1818,6 +2063,10 @@ class LocalHandler(SimpleHTTPRequestHandler):
             if path == "/api/save-score-grid":
                 payload = json.loads(body.decode("utf-8") or "{}")
                 self.send_json({"ok": True, **save_score_grid(payload)})
+                return
+            if path == "/api/student-stories":
+                payload = json.loads(body.decode("utf-8") or "{}")
+                self.send_json({"ok": True, **save_student_stories(payload)})
                 return
             if path == "/api/reset-scores":
                 self.send_json({"ok": True, **reset_scores()})

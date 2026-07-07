@@ -7,14 +7,23 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from hwp_alimi.hwp5_patch import (
+    TEACHER_STORY_TITLE,
     count_decoded_checkbox_states,
     count_decoded_checkboxes,
     count_decoded_text_occurrences,
     decode_section_stream,
     encode_section_stream,
+    find_teacher_story_record,
+    hwp_record_header,
+    iter_hwp_records,
     ole_directory_sort_key,
+    para_text_from_record,
     replace_decoded_text,
+    replace_hwp_record_payload,
     same_size_utf16_replacement_bytes,
+    teacher_story_cleanup_find_text,
+    teacher_story_patched_text,
+    teacher_story_payload_text,
     school_info_placeholder_replacement,
     student_placeholder_replacement,
     write_bytes_with_retry,
@@ -71,11 +80,19 @@ class Hwp5PatchTest(unittest.TestCase):
         self.assertEqual(len(decoded), len(original))
         self.assertIn("담임 홍길동  ".encode("utf-16le"), decoded)
 
-    def test_rejects_decoded_utf16_text_replacement_when_longer(self):
-        decoded = bytearray("0번 이름: 000 □".encode("utf-16le"))
+    def test_skips_absent_longer_replacement(self):
+        decoded = bytearray("담임 0 0 0 □".encode("utf-16le"))
+
+        count = replace_decoded_text(decoded, "없는 말", "자리표시자보다 긴 문구")
+
+        self.assertEqual(count, 0)
+
+    def test_rejects_present_decoded_utf16_text_replacement_when_longer(self):
+        payload = "담임 0\r".encode("utf-16le")
+        decoded = bytearray(hwp_record_header(67, 3, len(payload)) + payload)
 
         with self.assertRaisesRegex(ValueError, "자리표시자보다 긴 문구"):
-            replace_decoded_text(decoded, "0번 이름: 000", "99번 이름: 합성검증")
+            replace_decoded_text(decoded, "담임 0", "담임 채우준")
 
     def test_same_size_utf16_replacement_bytes_pads_shorter_text(self):
         replacement = same_size_utf16_replacement_bytes("담임 0 0 0", "담임 홍길동")
@@ -123,6 +140,54 @@ class Hwp5PatchTest(unittest.TestCase):
             "담임 홍길동",
         )
 
+    def test_finds_teacher_story_record_after_title(self):
+        decoded = bytearray()
+        for level, text in [
+            (3, "머리말\r"),
+            (7, f" {TEACHER_STORY_TITLE}\r"),
+            (3, "  예시 문장입니다.\r"),
+            (7, " 학생의 성장을 격려하는 부모님의 이야기\r"),
+        ]:
+            payload = text.encode("utf-16le")
+            decoded.extend(hwp_record_header(67, level, len(payload)))
+            decoded.extend(payload)
+
+        found = find_teacher_story_record(decoded)
+
+        self.assertIsNotNone(found)
+        title_record, story_record = found
+        self.assertIn(TEACHER_STORY_TITLE, para_text_from_record(decoded, title_record))
+        self.assertEqual(para_text_from_record(decoded, story_record), "  예시 문장입니다.\r")
+
+    def test_teacher_story_payload_text_does_not_pad_trailing_spaces(self):
+        self.assertEqual(teacher_story_payload_text("  공통 문장 개별 문장"), "  공통 문장 개별 문장\r")
+        self.assertEqual(teacher_story_payload_text(""), "\r")
+
+    def test_teacher_story_patched_text_pads_before_paragraph_end_for_hwp_compatibility(self):
+        patched = teacher_story_patched_text("  공통", original_payload_size=16)
+
+        self.assertEqual(patched.removesuffix("\r").rstrip(" "), "  공통")
+        self.assertEqual(patched[-1], "\r")
+        self.assertEqual(len(patched.encode("utf-16le")), 16)
+
+    def test_teacher_story_cleanup_find_text_targets_padded_story_only(self):
+        find_text = teacher_story_cleanup_find_text("  공통", "예시문장입니다")
+
+        self.assertEqual(find_text.rstrip(" "), "  공통")
+        self.assertGreater(len(find_text), len("  공통"))
+        self.assertEqual(teacher_story_cleanup_find_text("  예시문장보다 긴 문장", "예시"), "")
+
+    def test_replaces_hwp_record_payload_with_longer_text(self):
+        payload = "짧은 문장\r".encode("utf-16le")
+        decoded = bytearray(hwp_record_header(67, 3, len(payload)) + payload)
+        record = iter_hwp_records(decoded)[0]
+        replacement = "  긴 공통 문장과 학생별 문장이 하나의 문단으로 이어집니다.\r".encode("utf-16le")
+
+        replace_hwp_record_payload(decoded, record, replacement)
+
+        record = iter_hwp_records(decoded)[0]
+        self.assertEqual(para_text_from_record(decoded, record), "  긴 공통 문장과 학생별 문장이 하나의 문단으로 이어집니다.\r")
+
     def test_write_bytes_with_retry_handles_transient_permission_error(self):
         class FlakyPath:
             def __init__(self):
@@ -146,3 +211,4 @@ class Hwp5PatchTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

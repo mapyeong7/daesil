@@ -25,6 +25,27 @@ class DirectoryEntry:
     file_offset: int
 
 
+@dataclass
+class HwpRecord:
+    index: int
+    offset: int
+    tag: int
+    level: int
+    size: int
+    payload_offset: int
+
+    @property
+    def end_offset(self) -> int:
+        return self.payload_offset + self.size
+
+
+TEACHER_STORY_TITLE = "학생의 성장을 더하는 선생님의 이야기"
+PARA_TEXT_TAG = 67
+CURRENT_STUDENT_LINE_RE = re.compile(r"(?P<find>\d+\s*번\s*(?P<label>이름|성명|학생명)\s*[:：]\s*[^\s\r\n\t]+)")
+CURRENT_GRADE_CLASS_RE = re.compile(r"(?P<find>\d+\s*학년\s+\d+\s*반)")
+CURRENT_TEACHER_RE = re.compile(r"(?P<find>(?P<label>담임(?:교사)?)\s*[:：]?\s*[^\s\r\n\t()]+)")
+
+
 class OleCompoundFile:
     def __init__(self, path: Path):
         self.path = path
@@ -144,7 +165,8 @@ class OleCompoundFile:
 
     def write_regular_stream(self, entry: DirectoryEntry, content: bytes) -> None:
         chain = self._sector_chain(entry.start_sector)
-        stored_size = len(content)
+        original_size = int(entry.size)
+        stored_size = max(len(content), original_size)
         if stored_size < MINI_STREAM_CUTOFF:
             # Keep the stream in the regular FAT chain. OLE readers switch to the
             # mini stream when the directory size is below 4096 bytes.
@@ -384,6 +406,219 @@ def count_decoded_text_occurrences(decoded: bytes | bytearray, text: str) -> int
     return bytes(decoded).count(text.encode("utf-16le"))
 
 
+def hwp_record_header(tag: int, level: int, size: int) -> bytes:
+    if size < 0xFFF:
+        return struct.pack("<I", int(tag) | (int(level) << 10) | (int(size) << 20))
+    return struct.pack("<II", int(tag) | (int(level) << 10) | (0xFFF << 20), int(size))
+
+
+def iter_hwp_records(decoded: bytes | bytearray) -> list[HwpRecord]:
+    data = bytes(decoded)
+    records: list[HwpRecord] = []
+    offset = 0
+    index = 0
+    while offset + 4 <= len(data):
+        header = struct.unpack_from("<I", data, offset)[0]
+        tag = header & 0x3FF
+        level = (header >> 10) & 0x3FF
+        size = (header >> 20) & 0xFFF
+        payload_offset = offset + 4
+        if size == 0xFFF:
+            if payload_offset + 4 > len(data):
+                break
+            size = struct.unpack_from("<I", data, payload_offset)[0]
+            payload_offset += 4
+        if payload_offset + size > len(data):
+            break
+        records.append(HwpRecord(index, offset, tag, level, size, payload_offset))
+        offset = payload_offset + size
+        index += 1
+    return records
+
+
+def para_text_from_record(decoded: bytes | bytearray, record: HwpRecord) -> str:
+    if record.tag != PARA_TEXT_TAG:
+        return ""
+    payload = bytes(decoded)[record.payload_offset : record.end_offset]
+    return payload.decode("utf-16le", errors="ignore")
+
+
+def clean_para_text(value: str) -> str:
+    return str(value or "").replace("\r", "").replace("\x00", "").strip()
+
+
+def find_teacher_story_record(decoded: bytes | bytearray) -> tuple[HwpRecord, HwpRecord] | None:
+    records = iter_hwp_records(decoded)
+    for title_position, record in enumerate(records):
+        if record.tag != PARA_TEXT_TAG:
+            continue
+        title_text = clean_para_text(para_text_from_record(decoded, record))
+        if TEACHER_STORY_TITLE not in title_text:
+            continue
+        for candidate in records[title_position + 1 :]:
+            if candidate.tag != PARA_TEXT_TAG:
+                continue
+            candidate_text = clean_para_text(para_text_from_record(decoded, candidate))
+            if not candidate_text:
+                continue
+            if "부모님" in candidate_text and "이야기" in candidate_text:
+                break
+            if "확인" in candidate_text and "서명" in candidate_text:
+                break
+            return record, candidate
+    return None
+
+
+def find_hwp_teacher_story_slot(hwp_path: Path) -> dict | None:
+    ole = OleCompoundFile(hwp_path)
+    for section_index, entry in enumerate(body_text_sections(ole)):
+        raw = ole.read_stream(entry)
+        decoded, _ = decode_section_stream(raw)
+        found = find_teacher_story_record(decoded)
+        if not found:
+            continue
+        title_record, story_record = found
+        title_text = clean_para_text(para_text_from_record(decoded, title_record))
+        find_text = para_text_from_record(decoded, story_record).removesuffix("\r")
+        return {
+            "section": entry.name,
+            "section_index": section_index,
+            "title_record_index": title_record.index,
+            "story_record_index": story_record.index,
+            "title": title_text,
+            "find_text": find_text,
+            "example_text": clean_para_text(find_text),
+        }
+    return None
+
+
+def find_hwp_student_placeholders(hwp_path: Path) -> list[dict]:
+    ole = OleCompoundFile(hwp_path)
+    placeholders: list[dict] = []
+    seen: set[str] = set()
+    for entry in body_text_sections(ole):
+        raw = ole.read_stream(entry)
+        decoded, _ = decode_section_stream(raw)
+        for record in iter_hwp_records(decoded):
+            if record.tag != PARA_TEXT_TAG:
+                continue
+            text = clean_para_text(para_text_from_record(decoded, record))
+            for match in CURRENT_STUDENT_LINE_RE.finditer(text):
+                find = " ".join(match.group("find").split())
+                if find in seen:
+                    continue
+                seen.add(find)
+                placeholders.append(
+                    {
+                        "find": find,
+                        "label": match.group("label"),
+                        "includes_number": True,
+                    }
+                )
+    return placeholders
+
+
+def find_hwp_school_info_placeholders(hwp_path: Path) -> list[dict]:
+    ole = OleCompoundFile(hwp_path)
+    placeholders: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for entry in body_text_sections(ole):
+        raw = ole.read_stream(entry)
+        decoded, _ = decode_section_stream(raw)
+        for record in iter_hwp_records(decoded):
+            if record.tag != PARA_TEXT_TAG:
+                continue
+            text = clean_para_text(para_text_from_record(decoded, record))
+            for match in CURRENT_GRADE_CLASS_RE.finditer(text):
+                find = " ".join(match.group("find").split())
+                key = ("grade_class", find)
+                if key in seen:
+                    continue
+                seen.add(key)
+                placeholders.append({"kind": "grade_class", "find": find})
+            for match in CURRENT_TEACHER_RE.finditer(text):
+                find = " ".join(match.group("find").split())
+                label = match.group("label")
+                key = ("teacher", find)
+                if key in seen:
+                    continue
+                seen.add(key)
+                placeholders.append(
+                    {
+                        "kind": "teacher",
+                        "find": find,
+                        "label": label,
+                        "separator": " ",
+                    }
+                )
+    return placeholders
+
+
+def replace_hwp_record_payload(decoded: bytearray, record: HwpRecord, payload: bytes) -> None:
+    decoded[record.offset : record.end_offset] = hwp_record_header(record.tag, record.level, len(payload)) + payload
+
+
+def teacher_story_payload_text(story_text: str) -> str:
+    replacement = str(story_text or "")
+    return f"{replacement}\r" if replacement else "\r"
+
+
+def teacher_story_patched_text(story_text: str, original_payload_size: int = 0) -> str:
+    replacement = str(story_text or "")
+    exact = teacher_story_payload_text(replacement)
+    if original_payload_size <= len(exact.encode("utf-16le")):
+        return exact
+    max_chars = original_payload_size // 2
+    visible_chars = max(0, max_chars - 1)
+    return replacement[:visible_chars].ljust(visible_chars) + "\r"
+
+
+def teacher_story_cleanup_find_text(story_text: str, template_text: str) -> str:
+    if template_text is None:
+        return ""
+    original_payload_size = len(f"{str(template_text)}\r".encode("utf-16le"))
+    padded = teacher_story_patched_text(story_text, original_payload_size).removesuffix("\r")
+    exact = str(story_text or "")
+    return padded if padded != exact else ""
+
+
+def patch_hwp_teacher_story(hwp_path: Path, slot: dict | None, story_text: str) -> int:
+    if not slot:
+        return 0
+
+    ole = OleCompoundFile(hwp_path)
+    sections = body_text_sections(ole)
+    target_section = str(slot.get("section") or "")
+    section_index = int(slot.get("section_index") or 0)
+    section_entry = None
+    for entry in sections:
+        if entry.name == target_section:
+            section_entry = entry
+            break
+    if section_entry is None and 0 <= section_index < len(sections):
+        section_entry = sections[section_index]
+    if section_entry is None:
+        return 0
+
+    raw = ole.read_stream(section_entry)
+    decoded, compressed = decode_section_stream(raw)
+    records = iter_hwp_records(decoded)
+    story_record_index = int(slot.get("story_record_index") or -1)
+    story_record = next((record for record in records if record.index == story_record_index), None)
+    if story_record is None or story_record.tag != PARA_TEXT_TAG:
+        found = find_teacher_story_record(decoded)
+        if not found:
+            return 0
+        _, story_record = found
+
+    original_payload = bytes(decoded)[story_record.payload_offset : story_record.end_offset]
+    payload = teacher_story_patched_text(story_text, len(original_payload)).encode("utf-16le")
+    replace_hwp_record_payload(decoded, story_record, payload)
+    ole.write_stream(section_entry, encode_section_stream(decoded, compressed))
+    ole.write_back()
+    return 1
+
+
 def body_text_sections(ole: OleCompoundFile) -> list[DirectoryEntry]:
     sections = sorted(
         [entry for entry in ole.entries if section_number(entry.name) >= 0],
@@ -534,10 +769,12 @@ def replace_decoded_text(decoded: bytearray, find: str, replace: str) -> int:
     find_bytes = str(find or "").encode("utf-16le")
     if not find_bytes:
         return 0
+    original = bytes(decoded)
+    count = original.count(find_bytes)
+    if not count:
+        return 0
     replace_bytes = same_size_utf16_replacement_bytes(find, replace)
-    count = bytes(decoded).count(find_bytes)
-    if count:
-        decoded[:] = decoded.replace(find_bytes, replace_bytes)
+    decoded[:] = original.replace(find_bytes, replace_bytes)
     return count
 
 
@@ -652,3 +889,4 @@ def patch_hwp_checkboxes(hwp_path: Path, checkbox_ordinals: list[int]) -> None:
         ole.write_regular_stream(entry, raw)
 
     ole.write_back()
+

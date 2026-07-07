@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
+from hwp_alimi.hwp5_patch import find_hwp_teacher_story_slot
 from hwp_alimi.io_utils import atomic_write_json
 from typing import Iterable
 
@@ -360,6 +361,12 @@ def extract_hwp_text(hwp_path: Path, text_path: Path) -> None:
 
 
 def write_json(path: Path, hwp_path: Path, text_path: Path, blocks: list[AssessmentBlock]) -> None:
+    teacher_story_slot = None
+    if hwp_path.suffix.lower() == ".hwp":
+        try:
+            teacher_story_slot = find_hwp_teacher_story_slot(hwp_path)
+        except Exception:
+            teacher_story_slot = None
     payload = {
         "source_hwp": str(hwp_path),
         "extracted_text": str(text_path),
@@ -367,6 +374,8 @@ def write_json(path: Path, hwp_path: Path, text_path: Path, blocks: list[Assessm
         "block_count": len(blocks),
         "blocks": [block_to_json(block) for block in blocks],
     }
+    if teacher_story_slot:
+        payload["teacher_story_slot"] = teacher_story_slot
     atomic_write_json(path, payload)
 
 

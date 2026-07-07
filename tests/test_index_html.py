@@ -77,6 +77,11 @@ class IndexHtmlTest(unittest.TestCase):
             assert(pastedScores[1][0] === "중" && pastedScores[1][1] === "하", "score paste should normalize level labels");
             assert(pastedScores[2][0] === "" && pastedScores[2][1] === "하", "score paste should preserve blank cells");
             assert(hooks.normalizeScoreCellValue("부분 도달") === "중", "score cell should normalize whitespace variants");
+            assert(hooks.finalStoryText({ common_story: "공통", individual_story: "개별" }) === "  공통 개별", "story text should combine common and individual text");
+            assert(hooks.finalStoryText({ common_story: "", individual_story: "개별" }) === "  개별", "story text should allow individual-only text");
+            assert(hooks.finalStoryText({ common_story: "", individual_story: "" }) === "", "story text should allow blank output");
+            const storyPaste = hooks.parseStoryPaste("공통1\\t개별1\\n공통2\\t개별2");
+            assert(storyPaste.length === 2 && storyPaste[1][1] === "개별2", "story paste should parse tabular text");
             assert(hooks.subjectValueMatches("즐거운 생활", "즐거운생활"), "subject value should match spacing variants");
             assert(
               hooks.issueMatchesSubject(
@@ -227,6 +232,29 @@ class IndexHtmlTest(unittest.TestCase):
         self.assertIn("2.HWP 파일 생성", html)
         self.assertNotIn(">HWP 파일 생성</button>", html)
         self.assertLess(html.index('id="generate-output-button"'), html.index('id="generate-sample-output-button"'))
+
+    def test_student_story_step_exists(self):
+        html = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn('data-step-target="story"', html)
+        self.assertIn('<span class="step-no">1.</span>', html)
+        self.assertIn('<span class="step-label">HWP양식</span>', html)
+        self.assertIn('<span class="step-no">4.</span>', html)
+        self.assertIn('<span class="step-label">HWP출력</span>', html)
+        self.assertIn('id="step-story-status"', html)
+        self.assertIn('data-step-panel="story"', html)
+        self.assertIn("학생 문장 입력", html)
+        self.assertIn("공통 문장 일괄 적용", html)
+        self.assertIn('id="save-stories-button"', html)
+        self.assertIn('id="apply-common-story-button"', html)
+        self.assertIn('id="story-rows"', html)
+        self.assertIn("공통 문장", html)
+        self.assertIn("학생별 문장", html)
+        self.assertIn('id="story-preview-list"', html)
+        self.assertIn("finalStoryText", html)
+        self.assertIn("/api/student-stories", html)
+        self.assertIn("학생 문장 저장 필요", html)
+        self.assertLess(html.index('data-step-target="story"'), html.index('data-step-target="review"'))
 
     def test_local_launcher_package_is_exe_first(self):
         html = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")

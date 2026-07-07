@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from hwp_alimi.phase3 import (
     build_phase3_payload,
+    compose_teacher_story,
     expected_checkbox_count,
     find_school_info_placeholders,
     find_student_placeholders,
@@ -108,6 +109,34 @@ class Phase3ManifestTest(unittest.TestCase):
         self.assertFalse(student["assessments"][1]["should_mark"])
         self.assertIsNone(student["assessments"][1]["level_index"])
         self.assertIsNone(student["assessments"][1]["checkbox_ordinal"])
+
+    def test_composes_teacher_story_from_common_and_individual_text(self):
+        self.assertEqual(compose_teacher_story("공통", "개별"), "  공통 개별")
+        self.assertEqual(compose_teacher_story("공통", ""), "  공통")
+        self.assertEqual(compose_teacher_story("", "개별"), "  개별")
+        self.assertEqual(compose_teacher_story("", ""), "")
+
+    def test_build_phase3_payload_includes_student_teacher_story(self):
+        payload = build_phase3_payload(
+            Path("phase1.json"),
+            phase1_payload("C:/fake/template.hwp"),
+            Path("phase2.json"),
+            phase2_payload(),
+            Path("phase3_output"),
+            student_stories=[
+                {
+                    "number": "1",
+                    "name": "김대실",
+                    "common_story": "공통 성장 문장",
+                    "individual_story": "개별 관찰 문장",
+                }
+            ],
+        )
+
+        student = payload["students"][0]
+        self.assertEqual(student["common_story"], "공통 성장 문장")
+        self.assertEqual(student["individual_story"], "개별 관찰 문장")
+        self.assertEqual(student["teacher_story"], "  공통 성장 문장 개별 관찰 문장")
 
     def test_blocks_output_when_phase2_has_errors_or_missing_columns(self):
         phase2 = phase2_payload()

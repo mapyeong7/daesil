@@ -854,6 +854,101 @@
       justify-content: flex-start;
     }
 
+    .story-tools {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+
+    .story-grid-shell {
+      max-height: 560px;
+      border: 1px solid #cfd8e3;
+      border-radius: 6px;
+      background: #ffffff;
+    }
+
+    .story-table {
+      min-width: 980px;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .story-table th,
+    .story-table td {
+      padding: 0;
+      border-right: 1px solid #e3e9f0;
+      border-bottom: 1px solid #e3e9f0;
+    }
+
+    .story-table th {
+      padding: 8px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    .story-table .row-index {
+      width: 46px;
+      min-width: 46px;
+      text-align: center;
+      color: #64748b;
+      background: #f8fafc;
+      font-weight: 600;
+    }
+
+    .story-table .number-col {
+      width: 72px;
+      min-width: 72px;
+      text-align: center;
+      background: #fbfdff;
+      font-weight: 700;
+    }
+
+    .story-table .name-col {
+      width: 104px;
+      min-width: 104px;
+      background: #fbfdff;
+      font-weight: 700;
+    }
+
+    .story-table textarea {
+      width: 100%;
+      min-height: 56px;
+      border: 0;
+      border-radius: 0;
+      padding: 8px 10px;
+      resize: vertical;
+      font: inherit;
+      line-height: 1.45;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .story-table textarea:focus {
+      outline: 2px solid #2f80ed;
+      outline-offset: -2px;
+      background: #f8fbff;
+    }
+
+    .story-preview-lines {
+      display: grid;
+      gap: 8px;
+    }
+
+    .story-preview-line {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: #fbfcfd;
+    }
+
+    .story-preview-line.empty {
+      color: var(--muted);
+    }
+
     .notice-overlay {
       position: fixed;
       inset: 0;
@@ -1028,7 +1123,7 @@
     }
 
     .step-no {
-      width: 28px;
+      width: 32px;
       height: 28px;
       border-radius: 6px;
       display: inline-grid;
@@ -1178,7 +1273,8 @@
       font-weight: 700;
     }
 
-    .field input {
+    .field input,
+    .field textarea {
       width: 100%;
       border: 1px solid #b8c2cf;
       border-radius: 6px;
@@ -1186,6 +1282,12 @@
       font: inherit;
       background: #ffffff;
       color: var(--text);
+    }
+
+    .field textarea {
+      min-height: 72px;
+      resize: vertical;
+      line-height: 1.45;
     }
 
     .review-grid {
@@ -1240,37 +1342,44 @@
 
       <nav class="step-nav-list">
         <button class="step-nav active" type="button" data-step-target="basic">
-          <span class="step-no">1</span>
+          <span class="step-no">1.</span>
           <span>
             <span class="step-label">기본 정보</span>
             <span class="step-status" id="step-basic-status">미입력</span>
           </span>
         </button>
         <button class="step-nav" type="button" data-step-target="template">
-          <span class="step-no">2</span>
+          <span class="step-no">2.</span>
           <span>
-            <span class="step-label">HWP 양식</span>
+            <span class="step-label">HWP양식</span>
             <span class="step-status" id="step-template-status">대기</span>
           </span>
         </button>
         <button class="step-nav" type="button" data-step-target="excel">
-          <span class="step-no">3</span>
+          <span class="step-no">3.</span>
           <span>
             <span class="step-label">과목별 성적입력</span>
             <span class="step-status" id="step-excel-status">대기</span>
           </span>
         </button>
+        <button class="step-nav" type="button" data-step-target="story">
+          <span class="step-no">4.</span>
+          <span>
+            <span class="step-label">학생 문장 입력</span>
+            <span class="step-status" id="step-story-status">대기</span>
+          </span>
+        </button>
         <button class="step-nav" type="button" data-step-target="review">
-          <span class="step-no">4</span>
+          <span class="step-no">5.</span>
           <span>
             <span class="step-label">검토</span>
             <span class="step-status" id="step-review-status">대기</span>
           </span>
         </button>
         <button class="step-nav" type="button" data-step-target="output">
-          <span class="step-no">5</span>
+          <span class="step-no">6.</span>
           <span>
-            <span class="step-label">HWP 출력</span>
+            <span class="step-label">HWP출력</span>
             <span class="step-status" id="step-output-status">대기</span>
           </span>
         </button>
@@ -1461,6 +1570,52 @@
         </article>
       </section>
 
+      <section class="step-panel" data-step-panel="story">
+        <div class="step-title-row">
+          <div>
+            <h1>학생 문장 입력</h1>
+            <div class="step-lede">선생님의 이야기 문장을 공통 문장과 학생별 문장으로 나누어 입력합니다.</div>
+          </div>
+        </div>
+
+        <article class="panel">
+          <h2 class="basic-info-card-title">
+            <span>선생님의 이야기 입력</span>
+            <button class="primary" id="save-stories-button" type="button">학생 문장 저장</button>
+          </h2>
+          <div class="panel-body">
+            <div class="story-tools">
+              <div class="field">
+                <label for="common-story-input">공통 문장 일괄 적용</label>
+                <textarea id="common-story-input" autocomplete="off" placeholder="학년 또는 학급 공통 문장을 입력하세요."></textarea>
+              </div>
+              <button id="apply-common-story-button" type="button">전체 적용</button>
+            </div>
+            <div class="score-help">공통 문장과 학생별 문장은 HWP 출력 시 한 문단으로 이어집니다. 문장 앞에는 자동으로 공백 두 칸이 들어갑니다.</div>
+            <div class="scroll story-grid-shell">
+              <table class="story-table">
+                <thead>
+                  <tr>
+                    <th class="row-index">#</th>
+                    <th class="number-col">번호</th>
+                    <th class="name-col">이름</th>
+                    <th>공통 문장</th>
+                    <th>학생별 문장</th>
+                  </tr>
+                </thead>
+                <tbody id="story-rows"></tbody>
+              </table>
+            </div>
+            <div class="basic-save-strip status-only">
+              <div class="basic-save-copy">
+                <strong>학생 문장 저장</strong>
+                <span class="muted action-status" id="story-status">학생 명단 저장 후 문장을 입력하세요.</span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
       <section class="step-panel" data-step-panel="review">
         <div class="step-title-row">
           <div>
@@ -1523,6 +1678,11 @@
             <h2>확인 필요 항목</h2>
             <div class="panel-body" id="issue-list">-</div>
           </article>
+
+          <article class="panel">
+            <h2>선생님의 이야기 미리보기</h2>
+            <div class="panel-body" id="story-preview-list">-</div>
+          </article>
         </div>
       </section>
 
@@ -1574,7 +1734,9 @@
     let resultPaths = {};
     let schoolInfo = { grade: "", class_name: "", teacher_name: "" };
     let studentRoster = [];
+    let studentStories = [];
     let rosterDirty = false;
+    let storyDirty = false;
     let activeStep = "basic";
     let activeScoreSubject = "";
     let selectedStudentIndex = 0;
@@ -1660,6 +1822,57 @@
         });
     }
 
+    function normalizeStoryText(value) {
+      return String(value || "").replace(/\s+/g, " ").trim();
+    }
+
+    function normalizeStudentStories(stories) {
+      if (!Array.isArray(stories)) return [];
+      return stories
+        .map((item) => ({
+          number: String(item?.number || "").trim(),
+          name: String(item?.name || "").trim(),
+          common_story: normalizeStoryText(item?.common_story),
+          individual_story: normalizeStoryText(item?.individual_story),
+        }))
+        .filter((item) => item.number || item.name || item.common_story || item.individual_story);
+    }
+
+    function storyLookup(stories = studentStories) {
+      const lookup = new Map();
+      normalizeStudentStories(stories).forEach((story) => {
+        const key = studentKey(story);
+        if (key) lookup.set(key, story);
+      });
+      return lookup;
+    }
+
+    function syncStoriesWithRoster(stories = studentStories, roster = studentRoster) {
+      const lookup = storyLookup(stories);
+      return normalizeStudentRoster(roster).map((student) => {
+        const story = lookup.get(studentKey(student)) || {};
+        return {
+          number: student.number,
+          name: student.name,
+          common_story: normalizeStoryText(story.common_story),
+          individual_story: normalizeStoryText(story.individual_story),
+        };
+      });
+    }
+
+    function finalStoryText(story) {
+      const parts = [normalizeStoryText(story?.common_story), normalizeStoryText(story?.individual_story)].filter(Boolean);
+      return parts.length ? `  ${parts.join(" ")}` : "";
+    }
+
+    function storySummary(stories = studentStories) {
+      const rows = syncStoriesWithRoster(stories);
+      const commonCount = rows.filter((story) => story.common_story).length;
+      const individualCount = rows.filter((story) => story.individual_story).length;
+      const emptyCount = rows.filter((story) => !story.common_story && !story.individual_story).length;
+      return { total: rows.length, commonCount, individualCount, emptyCount };
+    }
+
     function rosterIssues(roster = studentRoster) {
       const normalized = normalizeStudentRoster(roster);
       const issues = [];
@@ -1737,7 +1950,9 @@
         rosterDirty = true;
         scoreGridDrafts.clear();
       }
+      studentStories = syncStoriesWithRoster(studentStories, studentRoster);
       syncSubjectGridWithRoster();
+      renderStoryGrid();
       updateRosterStatus(studentRoster);
       updateStepStatuses();
     }
@@ -1752,8 +1967,10 @@
     function markRosterChanged(message) {
       rosterDirty = true;
       scoreGridDrafts.clear();
+      studentStories = syncStoriesWithRoster(studentStories, studentRoster);
       renderRoster(studentRoster);
       syncSubjectGridWithRoster();
+      renderStoryGrid();
       updateStepStatuses();
       const statusMessage = message || "학생 명단이 변경되었습니다. 기본정보 전체 저장이 필요합니다.";
       $("school-info-status").innerHTML = `<span class="status-warn">${escapeHtml(statusMessage)}</span>`;
@@ -1864,6 +2081,129 @@
       nextInput.focus();
     }
 
+    function updateStoryStatus() {
+      const { total, commonCount, individualCount, emptyCount } = storySummary();
+      const cls = storyDirty ? "status-warn" : "status-ok";
+      $("story-status").innerHTML = total
+        ? `<span class="${cls}">공통 문장 ${commonCount}명, 학생별 문장 ${individualCount}명, 빈 문장 ${emptyCount}명${storyDirty ? ", 저장 필요" : ""}</span>`
+        : `<span class="status-warn">학생 명단을 먼저 저장하세요.</span>`;
+      $("save-stories-button").disabled = !rosterComplete() || rosterDirty;
+    }
+
+    function storyGridRowHtml(story, index) {
+      return `
+        <tr data-story-index="${index}">
+          <td class="row-index">${index + 1}</td>
+          <td class="number-col">${escapeHtml(story.number || "")}</td>
+          <td class="name-col">${escapeHtml(story.name || "")}</td>
+          <td><textarea data-story-field="common_story" aria-label="${escapeHtml(story.name || index + 1)} 공통 문장">${escapeHtml(story.common_story || "")}</textarea></td>
+          <td><textarea data-story-field="individual_story" aria-label="${escapeHtml(story.name || index + 1)} 학생별 문장">${escapeHtml(story.individual_story || "")}</textarea></td>
+        </tr>
+      `;
+    }
+
+    function renderStoryGrid() {
+      studentStories = syncStoriesWithRoster(studentStories, studentRoster);
+      $("story-rows").innerHTML = studentStories.length
+        ? studentStories.map((story, index) => storyGridRowHtml(story, index)).join("")
+        : `<tr><td colspan="5" class="score-grid-message">학생 명단을 먼저 저장하세요.</td></tr>`;
+      updateStoryStatus();
+      renderStoryPreview();
+    }
+
+    function storyRowsFromGrid() {
+      return queryAll("#story-rows tr[data-story-index]").map((row, index) => {
+        const base = studentStories[index] || {};
+        return {
+          number: base.number || "",
+          name: base.name || "",
+          common_story: normalizeStoryText(row.querySelector('[data-story-field="common_story"]')?.value || ""),
+          individual_story: normalizeStoryText(row.querySelector('[data-story-field="individual_story"]')?.value || ""),
+        };
+      });
+    }
+
+    function syncStoriesFromGrid({ markDirty = true } = {}) {
+      studentStories = syncStoriesWithRoster(storyRowsFromGrid(), studentRoster);
+      if (markDirty) storyDirty = true;
+      updateStoryStatus();
+      renderStoryPreview();
+      updateStepStatuses();
+    }
+
+    function parseStoryPaste(text) {
+      return String(text || "")
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .split(/\r?\n/)
+        .map((line) => line.split("\t").map((cell) => normalizeStoryText(cell)))
+        .filter((cells) => cells.some(Boolean));
+    }
+
+    function applyStoryPasteToGrid(event) {
+      const input = event.target.closest("textarea[data-story-field]");
+      if (!input) return;
+      const text = event.clipboardData?.getData("text/plain") || "";
+      if (!/(\t|\r?\n|\\t|\\n)/.test(text)) return;
+      const pastedRows = parseStoryPaste(text);
+      if (!pastedRows.length) return;
+      event.preventDefault();
+
+      const startRow = input.closest("tr");
+      const startIndex = Number(startRow?.dataset.storyIndex || 0);
+      const startField = input.dataset.storyField;
+      const fields = ["common_story", "individual_story"];
+      const startCol = Math.max(0, fields.indexOf(startField));
+      pastedRows.forEach((cells, rowOffset) => {
+        const row = queryAll("#story-rows tr[data-story-index]")[startIndex + rowOffset];
+        if (!row) return;
+        cells.forEach((value, colOffset) => {
+          const field = fields[startCol + colOffset];
+          if (!field) return;
+          const target = row.querySelector(`[data-story-field="${field}"]`);
+          if (target) target.value = value;
+        });
+      });
+      syncStoriesFromGrid();
+    }
+
+    function applyCommonStoryToAll() {
+      const value = normalizeStoryText($("common-story-input").value);
+      queryAll('#story-rows textarea[data-story-field="common_story"]').forEach((textarea) => {
+        textarea.value = value;
+      });
+      syncStoriesFromGrid();
+    }
+
+    async function saveStudentStories() {
+      if (!rosterComplete() || rosterDirty) {
+        showErrorPopup("학생 명단 저장 필요", "기본정보 전체 저장을 먼저 누른 뒤 학생 문장을 저장하세요.");
+        setActiveStep("basic");
+        return;
+      }
+      syncStoriesFromGrid({ markDirty: false });
+      $("save-stories-button").disabled = true;
+      $("story-status").textContent = "학생 문장을 저장하는 중입니다.";
+      try {
+        const response = await fetch("/api/student-stories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_stories: studentStories }),
+        });
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "학생 문장 저장 실패");
+        storyDirty = false;
+        renderAll(payload);
+        setActiveStep("review");
+      } catch (error) {
+        $("story-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
+        showErrorPopup("학생 문장 저장 실패", error.message);
+      } finally {
+        $("save-stories-button").disabled = !rosterComplete() || rosterDirty;
+      }
+    }
+
     function setActiveStep(step) {
       activeStep = step;
       queryAll("[data-step-panel]").forEach((panel) => {
@@ -1874,6 +2214,8 @@
       });
       if (step === "excel") {
         syncSubjectGridWithRoster();
+      } else if (step === "story") {
+        renderStoryGrid();
       }
     }
 
@@ -1911,6 +2253,19 @@
         const phase2ErrorCount = phase2Data.error_count ?? (phase2Data.issues || []).filter((issue) => issue.severity !== "warning").length;
         const excelState = imported >= expected && !phase2ErrorCount ? "ok" : "alert";
         setStepStatus("excel", `${imported}/${expected}`, excelState);
+      }
+
+      if (!phase1Data) {
+        setStepStatus("story", "양식 필요", "alert");
+      } else if (!rosterComplete()) {
+        setStepStatus("story", "명단 필요", "alert");
+      } else if (rosterDirty) {
+        setStepStatus("story", "명단 저장 필요", "alert");
+      } else if (!phase1Data.teacher_story_slot) {
+        setStepStatus("story", "칸 미탐지", "alert");
+      } else {
+        const summary = storySummary();
+        setStepStatus("story", storyDirty ? "저장 필요" : `${summary.total - summary.emptyCount}/${summary.total}`, storyDirty ? "alert" : "ok");
       }
 
       if (!phase2Data) {
@@ -2628,6 +2983,26 @@
       `;
     }
 
+    function renderStoryPreview() {
+      const rows = syncStoriesWithRoster(studentStories, studentRoster);
+      if (!rows.length) {
+        $("story-preview-list").innerHTML = `<span class="muted">학생 명단 저장 후 문장 미리보기를 볼 수 있습니다.</span>`;
+        return;
+      }
+      const previewRows = rows.slice(0, 8).map((story) => {
+        const text = finalStoryText(story);
+        const label = `${story.number}번 ${story.name}`.trim();
+        return `
+          <div class="story-preview-line ${text ? "" : "empty"}">
+            <strong>${escapeHtml(label)}</strong><br>
+            ${text ? escapeHtml(text) : "문장 없음"}
+          </div>
+        `;
+      }).join("");
+      const hidden = rows.length > 8 ? `<div class="muted">외 ${rows.length - 8}명</div>` : "";
+      $("story-preview-list").innerHTML = `<div class="story-preview-lines">${previewRows}${hidden}</div>`;
+    }
+
     function renderPhase2Status(phase2) {
       if (!phase2) {
         $("phase2-status").innerHTML = phase1Data
@@ -2758,6 +3133,11 @@
         : (rosterDirty && localRoster.length > 0 && payloadRoster.length === 0);
       studentRoster = keepLocalRoster ? (localRoster.length ? localRoster : studentRoster) : payloadRoster;
       if (!keepLocalRoster) rosterDirty = false;
+      if (!storyDirty) {
+        studentStories = syncStoriesWithRoster(normalizeStudentStories(payload.student_stories || []), studentRoster);
+      } else {
+        studentStories = syncStoriesWithRoster(studentStories, studentRoster);
+      }
       selectedStudentIndex = 0;
       selectedSubject = "전체";
       if (!activeScoreSubject && phase1Data) {
@@ -2781,8 +3161,10 @@
       renderPhase2Status(phase2Data);
       renderBlocks(phase1Data);
       renderSubjectExcelInputs(phase1Data, phase2Data);
+      renderStoryGrid();
       renderStudents(phase2Data);
       renderIssues(phase2Data);
+      renderStoryPreview();
       renderPhase3Status(phase3Data);
       updateStepStatuses();
     }
@@ -2943,7 +3325,7 @@
         $("excel-status").innerHTML = `<span class="${cls}">엑셀 불러오기 완료: 입력 ${imported}/${expected}, 학생 ${studentCount}명, 오류 ${errorCount}건, 경고 ${warningCount}건</span>`;
         if (statusEl) statusEl.innerHTML = `<span class="${cls}">${escapeHtml(subject)} 반영 완료</span>`;
         showPhase2IssuePopup(payload.phase2, `${subject} 엑셀 반영`);
-        if (imported >= expected) setActiveStep("review");
+        if (imported >= expected) setActiveStep("story");
       } catch (error) {
         if (statusEl) statusEl.innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
         $("excel-status").innerHTML = `<span class="status-bad">${escapeHtml(error.message)}</span>`;
@@ -3037,6 +3419,11 @@
         setActiveStep("excel");
         return;
       }
+      if (storyDirty) {
+        showErrorPopup("학생 문장 저장 필요", "학생 문장 입력표에 저장하지 않은 내용이 있습니다. 학생 문장 저장 버튼을 먼저 누르세요.");
+        setActiveStep("story");
+        return;
+      }
       $("prepare-output-button").disabled = true;
       $("output-status").textContent = "학생별 출력 데이터를 만드는 중입니다.";
       try {
@@ -3066,6 +3453,11 @@
       if (scoreGridDrafts.size) {
         showErrorPopup("성적 저장 필요", "과목별 성적 입력표에 저장하지 않은 내용이 있습니다. 성적을 먼저 저장한 뒤 HWP를 생성하세요.");
         setActiveStep("excel");
+        return;
+      }
+      if (storyDirty) {
+        showErrorPopup("학생 문장 저장 필요", "학생 문장 입력표에 저장하지 않은 내용이 있습니다. 학생 문장을 먼저 저장한 뒤 HWP를 생성하세요.");
+        setActiveStep("story");
         return;
       }
       const isSample = limit === 1;
@@ -3101,6 +3493,9 @@
         subjectsFromPhase1,
         normalizeStudentRoster,
         parseRosterPaste,
+        normalizeStudentStories,
+        finalStoryText,
+        parseStoryPaste,
         normalizeScoreCellValue,
         parseScorePaste,
       };
@@ -3116,6 +3511,8 @@
     $("recognize-button").addEventListener("click", recognizeTemplate);
     $("reset-scores-button").addEventListener("click", resetScores);
     $("save-score-grid-button").addEventListener("click", saveScoreGrid);
+    $("apply-common-story-button").addEventListener("click", applyCommonStoryToAll);
+    $("save-stories-button").addEventListener("click", saveStudentStories);
     $("prepare-output-button").addEventListener("click", prepareOutputData);
     $("generate-sample-output-button").addEventListener("click", () => generateHwpReports(1));
     $("generate-output-button").addEventListener("click", () => generateHwpReports(0));
@@ -3150,6 +3547,8 @@
     });
     $("roster-rows").addEventListener("input", syncRosterFromGrid);
     $("roster-rows").addEventListener("paste", applyRosterPasteToGrid);
+    $("story-rows").addEventListener("input", () => syncStoriesFromGrid());
+    $("story-rows").addEventListener("paste", applyStoryPasteToGrid);
     $("score-grid").addEventListener("input", (event) => {
       const input = event.target.closest('input[data-score-block]');
       if (!input) return;

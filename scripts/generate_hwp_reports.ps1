@@ -102,6 +102,10 @@ if (($manifest.PSObject.Properties.Name -contains "school_info_placeholders") -a
         }
     }
 }
+$manifestTeacherStorySlot = $null
+if (($manifest.PSObject.Properties.Name -contains "teacher_story_slot") -and $manifest.teacher_story_slot) {
+    $manifestTeacherStorySlot = $manifest.teacher_story_slot
+}
 
 if (-not $manifest.ready) {
     $messages = @($manifest.blocking_issues | ForEach-Object { $_.message }) -join "`n - "
@@ -135,13 +139,17 @@ foreach ($student in $students) {
     try {
         $hwp = New-Object -ComObject HWPFrame.HwpObject
 
+        $filePathCheckRegistered = $false
         try {
-            $hwp.XHwpWindows.Item(0).Visible = $false
+            $filePathCheckRegistered = [bool]$hwp.RegisterModule("FilePathCheckDLL", "FilePathCheckerModule")
         } catch {
+        }
+        if (-not $filePathCheckRegistered) {
+            throw "HWP FilePathCheck security module registration failed. Direct HWP patch mode should be used instead."
         }
 
         try {
-            $hwp.RegisterModule("FilePathCheckDLL", "FilePathCheckerModule") | Out-Null
+            $hwp.XHwpWindows.Item(0).Visible = $false
         } catch {
         }
 
@@ -173,12 +181,13 @@ foreach ($student in $students) {
                 } else {
                     $replace = "{0}: {1}" -f $label, $name
                 }
-                if (Invoke-HwpAllReplace -Hwp $hwp -Find $find -Replace $replace) {
+                if ($find -eq $replace -or (Invoke-HwpAllReplace -Hwp $hwp -Find $find -Replace $replace)) {
                     $replaceSucceeded = $true
                     break
                 }
             }
-        } else {
+        }
+        if (-not $replaceSucceeded) {
             $nameLabels = @($wordName, $wordFullName, $wordStudentName)
             $placeholderTokens = @("000", "OOO", $circleToken)
             foreach ($label in $nameLabels) {
@@ -235,9 +244,14 @@ foreach ($student in $students) {
             $wordHomeroom = -join ([char]0xB2F4, [char]0xC784)
             $fullWidthColon = [string][char]0xFF1A
             $schoolReplaceHits = 0
+            $schoolReplaceKinds = @{}
+            $requiredSchoolKinds = @{}
             foreach ($placeholder in $manifestSchoolInfoPlaceholders) {
                 $find = [string]$placeholder.find
                 $kind = [string]$placeholder.kind
+                if (-not [string]::IsNullOrWhiteSpace($kind)) {
+                    $requiredSchoolKinds[$kind] = $true
+                }
                 $replace = ""
                 if ($kind -eq "grade_class") {
                     $replace = "{0}{1} {2}{3}" -f $grade, $wordGrade, $className, $wordClass
@@ -258,13 +272,57 @@ foreach ($student in $students) {
                     $replace = "{0}{1}{2}" -f $label, $separator, $teacherName
                 }
                 if (-not [string]::IsNullOrWhiteSpace($replace)) {
-                    if (Invoke-HwpAllReplace -Hwp $hwp -Find $find -Replace $replace) {
+                    if ($find -eq $replace -or (Invoke-HwpAllReplace -Hwp $hwp -Find $find -Replace $replace)) {
                         $schoolReplaceHits += 1
+                        if (-not [string]::IsNullOrWhiteSpace($kind)) {
+                            $schoolReplaceKinds[$kind] = $true
+                        }
                     }
                 }
             }
-            if ($schoolReplaceHits -lt $manifestSchoolInfoPlaceholders.Count) {
-                throw "HWP school info placeholder replace failed: $outputPath"
+            foreach ($kind in $requiredSchoolKinds.Keys) {
+                if (-not $schoolReplaceKinds.ContainsKey($kind)) {
+                    throw "HWP school info placeholder replace failed: $outputPath"
+                }
+            }
+        }
+
+        if ($manifestTeacherStorySlot -ne $null -and ($manifestTeacherStorySlot.PSObject.Properties.Name -contains "find_text")) {
+            $storyFindCandidates = New-Object System.Collections.Generic.List[string]
+            $storyFind = [string]$manifestTeacherStorySlot.find_text
+            if (-not [string]::IsNullOrWhiteSpace($storyFind)) {
+                $storyFindCandidates.Add($storyFind) | Out-Null
+                $storyFindCandidates.Add($storyFind.Trim()) | Out-Null
+            }
+            if ($manifestTeacherStorySlot.PSObject.Properties.Name -contains "example_text") {
+                $storyExample = [string]$manifestTeacherStorySlot.example_text
+                if (-not [string]::IsNullOrWhiteSpace($storyExample)) {
+                    $storyFindCandidates.Add($storyExample) | Out-Null
+                    $storyFindCandidates.Add($storyExample.Trim()) | Out-Null
+                }
+            }
+            $storyReplace = ""
+            if ($student.PSObject.Properties.Name -contains "teacher_story") {
+                $storyReplace = [string]$student.teacher_story
+            }
+            $storyReplaced = $false
+            $triedStoryFinds = @{}
+            foreach ($storyFindCandidate in $storyFindCandidates) {
+                if ([string]::IsNullOrWhiteSpace($storyFindCandidate)) {
+                    continue
+                }
+                $storyKey = $storyFindCandidate
+                if ($triedStoryFinds.ContainsKey($storyKey)) {
+                    continue
+                }
+                $triedStoryFinds[$storyKey] = $true
+                if ($storyFindCandidate -eq $storyReplace -or (Invoke-HwpAllReplace -Hwp $hwp -Find $storyFindCandidate -Replace $storyReplace)) {
+                    $storyReplaced = $true
+                    break
+                }
+            }
+            if (-not $storyReplaced) {
+                # Python applies a record-level story patch after COM saves the file.
             }
         }
 
