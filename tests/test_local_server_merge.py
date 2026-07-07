@@ -1754,6 +1754,36 @@ class LocalServerMergeTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "개수가 학생 수와 맞지 않습니다"):
             validate_created_files(["C:/out/01_김대실.hwp"], 2)
 
+    def test_unlink_with_retry_returns_false_for_locked_file(self):
+        class LockedPath:
+            def __init__(self):
+                self.calls = 0
+
+            def unlink(self):
+                self.calls += 1
+                raise PermissionError("locked")
+
+        locked = LockedPath()
+
+        self.assertFalse(local_server.unlink_with_retry(locked, attempts=3, delay_seconds=0))
+        self.assertEqual(locked.calls, 3)
+
+    def test_clear_report_output_files_does_not_raise_for_locked_hwp(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir)
+            hwp_file = output_dir / "locked.hwp"
+            hwp_file.write_bytes(b"locked")
+            original_unlink = local_server.unlink_with_retry
+            try:
+                local_server.unlink_with_retry = lambda path, **kwargs: False
+
+                removed = local_server.clear_report_output_files(output_dir)
+            finally:
+                local_server.unlink_with_retry = original_unlink
+
+            self.assertEqual(removed, [])
+            self.assertTrue(hwp_file.exists())
+
     def test_clear_report_output_files_removes_only_generated_hwp_and_zip(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir)

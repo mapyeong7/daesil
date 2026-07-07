@@ -117,6 +117,76 @@ function Invoke-HwpAllReplace {
     return $Hwp.HAction.Execute("AllReplace", $set.HSet)
 }
 
+function Close-HwpObject {
+    param($Hwp)
+
+    if ($Hwp -eq $null) {
+        return
+    }
+    try {
+        $Hwp.Quit()
+    } catch {
+    }
+    try {
+        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($Hwp) | Out-Null
+    } catch {
+    }
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+}
+
+function Invoke-HwpFinalizeOne {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ResolvedPath,
+
+        [object[]]$Replacements = @()
+    )
+
+    $attemptMessages = New-Object System.Collections.Generic.List[string]
+    for ($attempt = 1; $attempt -le 4; $attempt += 1) {
+        $hwp = $null
+        try {
+            $hwp = New-Object -ComObject HWPFrame.HwpObject
+            Register-HwpFilePathChecker -Hwp $hwp | Out-Null
+            try {
+                $hwp.XHwpWindows.Item(0).Visible = $false
+            } catch {
+            }
+            $opened = $hwp.Open($ResolvedPath, "", "")
+            if (-not $opened) {
+                throw "HWP open failed while finalizing: $ResolvedPath"
+            }
+            foreach ($replacement in $Replacements) {
+                if ($replacement -eq $null) {
+                    continue
+                }
+                $find = ""
+                $replace = ""
+                if ($replacement.PSObject.Properties.Name -contains "find") {
+                    $find = [string]$replacement.find
+                }
+                if ($replacement.PSObject.Properties.Name -contains "replace") {
+                    $replace = [string]$replacement.replace
+                }
+                Invoke-HwpAllReplace -Hwp $hwp -Find $find -Replace $replace | Out-Null
+            }
+            $saved = $hwp.SaveAs($ResolvedPath, "HWP", "")
+            if (-not $saved) {
+                throw "HWP save failed while finalizing: $ResolvedPath"
+            }
+            return $true
+        } catch {
+            $attemptMessages.Add("attempt ${attempt}: $($_.Exception.Message)") | Out-Null
+        } finally {
+            Close-HwpObject -Hwp $hwp
+        }
+        Start-Sleep -Milliseconds (350 * $attempt)
+    }
+    $detail = [string]::Join("`n", $attemptMessages)
+    throw "HWP finalizing failed after retries: $ResolvedPath`n$detail"
+}
+
 $pathItems = Get-Content -Encoding UTF8 -Raw -LiteralPath $PathListJson | ConvertFrom-Json
 foreach ($item in @($pathItems)) {
     $path = $null
@@ -137,43 +207,6 @@ foreach ($item in @($pathItems)) {
         continue
     }
     $resolvedPath = (Resolve-Path -LiteralPath $path).Path
-    $hwp = $null
-    try {
-        $hwp = New-Object -ComObject HWPFrame.HwpObject
-        Register-HwpFilePathChecker -Hwp $hwp | Out-Null
-        try {
-            $hwp.XHwpWindows.Item(0).Visible = $false
-        } catch {
-        }
-        $opened = $hwp.Open($resolvedPath, "", "")
-        if (-not $opened) {
-            throw "HWP open failed while finalizing: $resolvedPath"
-        }
-        foreach ($replacement in $replacements) {
-            if ($replacement -eq $null) {
-                continue
-            }
-            $find = ""
-            $replace = ""
-            if ($replacement.PSObject.Properties.Name -contains "find") {
-                $find = [string]$replacement.find
-            }
-            if ($replacement.PSObject.Properties.Name -contains "replace") {
-                $replace = [string]$replacement.replace
-            }
-            Invoke-HwpAllReplace -Hwp $hwp -Find $find -Replace $replace | Out-Null
-        }
-        $saved = $hwp.SaveAs($resolvedPath, "HWP", "")
-        if (-not $saved) {
-            throw "HWP save failed while finalizing: $resolvedPath"
-        }
-        Write-Output $resolvedPath
-    } finally {
-        if ($hwp -ne $null) {
-            try {
-                $hwp.Quit()
-            } catch {
-            }
-        }
-    }
+    Invoke-HwpFinalizeOne -ResolvedPath $resolvedPath -Replacements $replacements | Out-Null
+    Write-Output $resolvedPath
 }

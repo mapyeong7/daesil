@@ -1714,14 +1714,32 @@ def validate_created_files(created_files: list[str], expected_count: int) -> Non
         raise RuntimeError(f"HWP 출력 파일명이 중복되었습니다. 학생 번호와 이름을 확인하세요: {sample}")
 
 
+def unlink_with_retry(path: Path, attempts: int = 6, delay_seconds: float = 0.25) -> bool:
+    for attempt in range(max(1, attempts)):
+        try:
+            path.unlink()
+            return True
+        except FileNotFoundError:
+            return True
+        except PermissionError:
+            if attempt >= attempts - 1:
+                return False
+            time.sleep(delay_seconds * (attempt + 1))
+        except OSError:
+            if attempt >= attempts - 1:
+                return False
+            time.sleep(delay_seconds * (attempt + 1))
+    return False
+
+
 def clear_report_output_files(output_dir: Path) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     removed: list[Path] = []
     for path in output_dir.iterdir():
         if not path.is_file() or path.suffix.lower() not in {".hwp", ".zip"}:
             continue
-        path.unlink()
-        removed.append(path)
+        if unlink_with_retry(path):
+            removed.append(path)
     return removed
 
 
